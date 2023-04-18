@@ -9,14 +9,9 @@ from task import Task
 from log import log
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
 from conf import PLEX_TOKEN,PLEX_URL,EMBY_URL,EMBY_PW,EMBY_USERNAME,PLEX_ROLE,PLEX_ROLE_CRON\
 ,PLEX_SORT,PLEX_SORT_CRON,FIRST_RUN,SYNC_TASK
-#emby = Embyserver(EMBY_URL,username='Luoli',password='luoliyujie')
-#await emby.login()
-#await emby.close()
-global first_run
-first_run = FIRST_RUN
+
 
 
 async def plex_roletask(task:Task):
@@ -32,14 +27,13 @@ async def sync_task(task:Task):
     await task.synctask()
 
 async def main(scheduler,task):
-    global first_run
     try:
         await task.init()
         if PLEX_ROLE:
             scheduler.add_job(plex_roletask,args=[task], trigger=CronTrigger.from_crontab(PLEX_ROLE_CRON))
         if PLEX_SORT:
             scheduler.add_job(plex_sorttask,args=[task], trigger=CronTrigger.from_crontab(PLEX_SORT_CRON))
-        if first_run:
+        if FIRST_RUN:
             await sync_task(task)
         if SYNC_TASK:
             scheduler.add_job(cron_sync,args=[task], trigger='interval',minutes=5)

@@ -6,13 +6,7 @@ from log import log
 from pypinyin import pinyin, Style
 from plexserver import Plexserver,Show,Movie,Episode
 from embyserver import Embyserver
-
-TMDB_API_KEY = '26edbd25d692245d1a8c2e6ac07cca06'
-#是否使用代理，是True，否False
-ISPROXY = True
-#代理地址
-PROXY = 'http://127.0.0.1:7890'
-CONCURRENT_NUM = 1000
+from conf import PROXY,ISPROXY,TMDB_API,CONCURRENT_NUM
 
 class Task():
     def __init__(self,plex:Plexserver=None,emby:Embyserver=None) -> None:
@@ -39,9 +33,9 @@ class Task():
                     log.warning(media.title+': 未找到该条目tmdb ID')
                 else:
                     if media.type == 'show':
-                        url = f'https://api.themoviedb.org/3/tv/{media.tmdbid}/aggregate_credits?api_key={TMDB_API_KEY}&language=zh-CN'
+                        url = f'https://api.themoviedb.org/3/tv/{media.tmdbid}/aggregate_credits?api_key={TMDB_API}&language=zh-CN'
                     elif media.type == 'movie':
-                        url = f'https://api.themoviedb.org/3/movie/{media.tmdbid}/credits?api_key={TMDB_API_KEY}&language=zh-CN'
+                        url = f'https://api.themoviedb.org/3/movie/{media.tmdbid}/credits?api_key={TMDB_API}&language=zh-CN'
                     else:
                         log.warning('只支持电影和剧集')
                         return
