@@ -85,7 +85,7 @@ class Embyserver(Util):
                 elif item.get('Type').lower() == 'episode':
                     media = Episode(item,self._server)
                 media.LastPlayedDate = datetime.fromisoformat(
-                    item['UserData'].get("LastPlayedDate"))
+                    item['UserData'].get("LastPlayedDate")[:-1])
                 medias.append(media)
         return medias
 
@@ -114,7 +114,7 @@ class Embyserver(Util):
                 elif item.get('Type').lower() == 'episode':
                     media = Episode(item,self._server)
                 media.LastPlayedDate = datetime.fromisoformat(
-                    item['UserData'].get("LastPlayedDate"))
+                    item['UserData'].get("LastPlayedDate")[:-1])
                 medias.append(media)
         return medias
 
@@ -205,7 +205,7 @@ class Media(Util):
         self.People = data.get('People')
         self.UserData = self.data.get('UserData')
         if self.UserData.get("LastPlayedDate"):
-            self.LastPlayedDate = datetime.fromisoformat(self.UserData.get("LastPlayedDate"))
+            self.LastPlayedDate = datetime.fromisoformat(self.UserData.get("LastPlayedDate")[:-1])
 
 class Movie(Media):
     def __init__(self, data, server) -> None:
@@ -307,7 +307,7 @@ class Episode(Util):
         self.data = data
         self._loaddata()
         if self.UserData.get('LastPlayedDate'):
-            self.LastPlayedDate = datetime.fromisoformat(self.UserData.get('LastPlayedDate'))
+            self.LastPlayedDate = datetime.fromisoformat(self.UserData.get('LastPlayedDate')[:-1])
 
     async def GetShow(self):
         data = {'Id':self.SeriesId}
