@@ -42,7 +42,7 @@ async def main(scheduler,task):
         if first_run:
             await sync_task(task)
         if SYNC_TASK:
-            scheduler.add_job(cron_sync,args=[task], trigger='interval',minutes=1)
+            scheduler.add_job(cron_sync,args=[task], trigger='interval',minutes=5)
         log.info('启动完成，开始调度任务')
     except:
         log.critical(traceback.format_exc())
