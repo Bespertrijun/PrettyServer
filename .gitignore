@@ -1,0 +1,24 @@
+syntax: glob
+*.db
+*.egg-info
+*.log
+*.orig
+*.pickle
+*.pyc
+*.sublime-*
+*.swp
+*__pycache__*
+.cache/
+.coverage
+.idea/
+.Python
+.vscode
+bin/
+include/
+lib/
+pyvenv.cfg
+MANIFEST
+venv/
+configtest.yaml
+Scripts
+*.json

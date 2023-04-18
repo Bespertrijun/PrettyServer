@@ -1,0 +1,57 @@
+#Server
+Server:
+  plex:
+    url: http://127.0.0.1:32400
+    token: xxxxxxxxxxxxxxxx
+  emby:
+    url: http://127.0.0.1:8096/emby
+    #apikey
+    token: xxxxxxxxxxxxxxxxx
+    #若要使用同步进度，需要填写账密,只同步该用户观看进度
+    username: xxxx
+    password: xxxx
+
+#访问tmdb代理  
+Proxy:
+  #是否启用代理
+  isproxy: True
+  http: "http://user:pass@ip:port"
+
+Task:
+  #任务及运行时间
+  plex:
+    #替换中文演员
+    roletask: 
+      run: True
+      #crontab表达式
+      crontab: '0 6 * * *'
+    #调整标题排序规则
+    sorttask: 
+      run: True
+      crontab: '0 6 * * *'
+  emby:
+    #替换中文演员
+    roletask: 
+      run: True
+      #crontab表达式
+      crontab: '0 6 * * *'
+    #调整标题排序规则
+    sorttask: 
+      run: True
+      crontab: '0 6 * * *'
+  #Emby，Plex观看同步
+  synctask: True
+
+Env:
+  #第一次运行脚本(观看进度同步第一次运行会同步所有媒体)
+  #同步规则：1.若有已观看则优先已观看，2.优先观看进度较多的一方
+  #是否第一次运行脚本(用来同步所有媒体观看进度时候 **若想同步所有观看记录须填** )
+  isfirst: True
+  #协程并发数  
+  concurrent_num: 1000
+  #Tmdb API(若要Plex替换演员，则需要)
+  tmdb_api: xxxxxxxxxxxxxxxx
+  #日志存放路径，默认运行文件夹，绝对路径
+  log_path: default
+  #日志保留天数
+  log_expire: 3
