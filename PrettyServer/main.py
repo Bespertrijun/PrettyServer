@@ -40,14 +40,19 @@ async def main(scheduler,task):
         log.info('启动完成，开始调度任务')
     except:
         log.critical(traceback.format_exc())
+        asyncio.get_running_loop().stop()
 
 if __name__ == '__main__':
-    warnings.filterwarnings('ignore', category=PytzUsageWarning)
-    scheduler = AsyncIOScheduler()
-    scheduler.start()
-    log.info('初始化中.....')
-    plex = Plexserver(PLEX_URL,PLEX_TOKEN)
-    emby = Embyserver(EMBY_URL,username=EMBY_USERNAME,password=EMBY_PW)
-    task = Task(plex,emby)
-    scheduler.add_job(main,args=[scheduler,task],trigger='date',next_run_time=datetime.datetime.now()+datetime.timedelta(seconds=3))
-    asyncio.get_event_loop().run_forever()
+    try:
+        warnings.filterwarnings('ignore', category=PytzUsageWarning)
+        scheduler = AsyncIOScheduler()
+        scheduler.start()
+        log.info('初始化中.....')
+        plex = Plexserver(PLEX_URL,PLEX_TOKEN)
+        emby = Embyserver(EMBY_URL,username=EMBY_USERNAME,password=EMBY_PW)
+        task = Task(plex,emby)
+        scheduler.add_job(main,args=[scheduler,task],trigger='date',next_run_time=datetime.datetime.now()+datetime.timedelta(seconds=3))
+        asyncio.get_event_loop().run_forever()
+    except:
+        log.critical(traceback.format_exc())
+        asyncio.get_running_loop().stop()

@@ -356,7 +356,10 @@ class Task():
             if not hasattr(self,'last_viewing'):
                 self.last_viewing = plex_cont[0].lastViewedAt
             if not hasattr(self,'last_viewed'):
-                self.last_viewed = plex_history[0].viewedAt
+                if not plex_history[0].viewedAt:
+                    self.last_viewed = plex_history[0].lastViewedAt
+                else:
+                    self.last_viewed = plex_history[0].viewedAt
             if not hasattr(self,'last_viewingdate'):
                 self.last_viewingdate = emby_cont[0].LastPlayedDate
             if not hasattr(self,'last_vieweddate'):
@@ -370,6 +373,8 @@ class Task():
                     break
             
             for _his in plex_history:
+                if not _his.viewedAt:
+                    _his.viewedAt = _his.lastViewedAt
                 if _his.viewedAt - self.last_viewed > 0:
                     task = asyncio.create_task(self._plex_sync_emby(media=_his,tasks=tasks))
                     tasks.append(task)

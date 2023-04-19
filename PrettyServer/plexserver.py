@@ -4,7 +4,7 @@ import time
 from platform import uname
 from uuid import getnode
 from util import Util
-from exception import AsyncError,InvalidParams
+from exception import AsyncError,InvalidParams,FailRequest,MediaTypeError
 from log import log
 
 class Plexserver(Util):
@@ -56,17 +56,36 @@ class Plexserver(Util):
                 'accountID': 1
             }
         path = self.bulidurl('/status/sessions/history/all',payload)
-        data = await self._server.query(path,msg='请求历史失败')
+        try:
+            data = await self._server.query(path,msg='请求历史失败')
+            medias = []
+            if data['MediaContainer'].get('size') == 0:
+                log.warning('Plex无历史播放记录')
+            else:
+                for item in data['MediaContainer'].get('Metadata'):
+                    if item.get('type').lower() == 'movie':
+                        medias.append(Movie(item,self._server))
+                    elif item.get('type').lower() == 'episode':
+                        medias.append(Episode(item,self._server))
+            return medias
+        except FailRequest:
+            medias = await self._history()
+            return medias
+
+    async def _history(self):
+        lb = await self.library()
         medias = []
-        if data['MediaContainer'].get('size') == 0:
-            log.warning('Plex无历史播放记录')
+        for section in lb.sections():
+            media = await section.history()
+            if media:
+                medias += media
+        sort_medias = sorted(medias,key = lambda x:x.lastViewedAt
+                             ,reverse=True)
+        if len(sort_medias) > 20:
+            return sort_medias[:20]
         else:
-            for item in data['MediaContainer'].get('Metadata'):
-                if item.get('type').lower() == 'movie':
-                    medias.append(Movie(item,self._server))
-                elif item.get('type').lower() == 'episode':
-                    medias.append(Episode(item,self._server))
-        return medias
+            return sort_medias
+        
 
     async def guidsearch(self,guid):
         lb = await self.library()
@@ -137,6 +156,32 @@ class Section(Util):
                 return Show(item_data[0],self._server)
             elif self.type == 'movie':
                 return Movie(item_data[0],self._server)
+            
+    async def history(self):
+        if self.type.lower() == 'show':
+            type = 4
+        elif self.type.lower() == 'movie':
+            type = 1
+        else:
+            raise MediaTypeError
+        payload = {
+            'sort': 'lastViewedAt:desc',
+            'unwatched': '0',
+            'viewOffset': '0',
+            'type': type,
+            'X-Plex-Container-Start': '0',
+            'X-Plex-Container-Size': '20'
+        }
+        path = self.bulidurl(f'/library/sections/{self.key}/all',payload)
+        data = await self._server.query(path)
+        medias = []
+        if data['MediaContainer'].get('Metadata'):
+            for item in data['MediaContainer'].get('Metadata'):
+                if self.type == 'show':
+                    medias.append(Episode(item,self._server))
+                elif self.type == 'movie':
+                    medias.append(Movie(item,self._server))
+            return medias
 
 class Media(Util):
 
