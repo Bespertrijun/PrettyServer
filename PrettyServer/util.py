@@ -37,12 +37,14 @@ class Util():
 
     def formatchs(self,name):
         chs = ''
-        for ch in name:
+        for n,ch in enumerate(name):
             if '\u4e00' <= ch <= '\u9fff':
                 chs += ch
             elif ch.isalnum():
                 chs += f'{ch}-'
             elif ch == '-':
+                pass
+            elif n == 0:
                 pass
             else:
                 chs += '-'
