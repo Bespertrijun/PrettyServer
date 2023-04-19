@@ -43,7 +43,7 @@ async def main(scheduler,task):
 
 if __name__ == '__main__':
     warnings.filterwarnings('ignore', category=PytzUsageWarning)
-    scheduler = AsyncIOScheduler(timezone='Asia/Shanghai')
+    scheduler = AsyncIOScheduler()
     scheduler.start()
     log.info('初始化中.....')
     plex = Plexserver(PLEX_URL,PLEX_TOKEN)
