@@ -23,12 +23,12 @@ class Task():
         for section in self.sections:
                 data = await section.all()
                 for media in data:
+                    await media.fetchitem()
                     self.medias.append(media)
     
     async def _roletask(self,media,tasks):
         try:
             async with self.sem:
-                await media.fetchitem()
                 if not media.tmdbid:
                     log.warning(media.title+': 未找到该条目tmdb ID')
                 else:
@@ -108,7 +108,6 @@ class Task():
     async def _synctask(self,media,tasks):
         try:
             async with self.sem:
-                await media.fetchitem()
                 if not media.tmdb:
                     log.warning(media.title+': 未找到该条目tmdb ID')
                 else:
