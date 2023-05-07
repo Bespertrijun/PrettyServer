@@ -1,10 +1,11 @@
 import asyncio
+import traceback
 import opencc
 from exception import FailRequest
 from log import log
 from aiohttp import ContentTypeError
 from aiohttp import ClientSession
-from conf import TMDB_API
+from conf import TMDB_API,PROXY,ISPROXY
 
 class Util():
     def bulidurl(self,url,payload:dict=None):
@@ -20,7 +21,7 @@ class Util():
                     url += f'&{k}={payload[k]}'
         return url
 
-    def issimple(name):
+    def issimple(self,name):
         converter = opencc.OpenCC('t2s.json')
         if converter.convert(name) == name:
             return True
@@ -161,9 +162,10 @@ class Util():
     
     async def request_tmdb(self,session,cid):
         url = f'https://api.themoviedb.org/3/person/{cid}?api_key={TMDB_API}&language=zh-CN'
-        while True:
+        proxy = PROXY if ISPROXY else None
+        for _ in range(3):
             try:
-                async with session.get(url) as res:
+                async with session.get(url,proxy=proxy) as res:
                     if res.status == 200:
                         respond =  await res.json()
                         data = {}
@@ -187,6 +189,9 @@ class Util():
                     else: 
                         return {'chs':[]}
             except:
-                log.error('连接失败，正在重试...')
+                if _ == 2:
+                    raise FailRequest(traceback.format_exc())
+                log.error('连接TMDB失败，1秒后重试...')
                 await asyncio.sleep(1)
+                log.info(f'第 {_} 重试中')
         return data[respond['name']]['chs']
