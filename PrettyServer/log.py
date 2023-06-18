@@ -1,16 +1,18 @@
 import os
 import sys
-from datetime import datetime
+from datetime import timedelta
 from loguru import logger as log
-from conf import LOG_PATH
+from conf import LOG_PATH,LOG_EXPIRE
 
 if LOG_PATH == 'default':
     LOG_PATH = sys.path[0]
-logfile = f'{datetime.now():%Y-%m-%d-%H-%M-%S}.log'
+LOG_EXPIRE = timedelta(days=LOG_EXPIRE)
 
-log.add(os.path.join(LOG_PATH,logfile),
+log.add(os.path.join(LOG_PATH,'{time}.log'),
         enqueue=True,
-        format='{time:YYYY-MM-DD HH:mm:ss} - {name}:{line} - {level} - {message}'
+        format='{time:YYYY-MM-DD HH:mm:ss} - {name}:{line} - {level} - {message}',
+        retention=LOG_EXPIRE,
+        rotation='00:00'
         )
 
 

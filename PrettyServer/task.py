@@ -19,12 +19,6 @@ class Task():
         self.sections = self.library.sections()
         if not hasattr(self,'session'):
             self.session = aiohttp.ClientSession()
-        self.medias = []
-        for section in self.sections:
-                data = await section.all()
-                for media in data:
-                    await media.fetchitem()
-                    self.medias.append(media)
     
     async def _roletask(self,media,tasks):
         try:
@@ -318,8 +312,16 @@ class Task():
         finally:
             tasks.remove(asyncio.current_task())
 
+    #async def _emby_role(self,media,tasks)
+
     async def basetask(self,method):
         tasks = []
+        self.medias = []
+        for section in self.sections:
+                data = await section.all()
+                for media in data:
+                    await media.fetchitem()
+                    self.medias.append(media)
         try:
             for media in self.medias:
                 task = asyncio.create_task(method(media=media,tasks=tasks))
@@ -342,7 +344,7 @@ class Task():
         await self.basetask(self._synctask)
 
     async def embyrole(self):
-        pass
+        await self.basetask(self._emby_role)
 
     async def cronsync(self):
         try:
