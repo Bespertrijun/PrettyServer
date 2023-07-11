@@ -316,14 +316,14 @@ class Task():
 
     async def basetask(self,method):
         tasks = []
-        self.medias = []
+        medias = []
         for section in self.sections:
                 data = await section.all()
                 for media in data:
                     await media.fetchitem()
-                    self.medias.append(media)
+                    medias.append(media)
         try:
-            for media in self.medias:
+            for media in medias:
                 task = asyncio.create_task(method(media=media,tasks=tasks))
                 tasks.append(task)
 

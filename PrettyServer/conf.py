@@ -1,7 +1,7 @@
 import yaml
 from exception import ConfigError
 
-with open('config.yaml', 'r', encoding='utf-8') as f:
+with open('configtest.yaml', 'r', encoding='utf-8') as f:
     data = yaml.load(stream=f, Loader=yaml.FullLoader)
     try:
         PLEX_URL = data['Server']['plex'].get('url')
@@ -14,7 +14,7 @@ with open('config.yaml', 'r', encoding='utf-8') as f:
         PROXY = data['Proxy'].get('http')
         CONCURRENT_NUM = data['Env'].get('concurrent_num')
         LOG_PATH = data['Env'].get('log_path')
-        LOG_EXPIRE = data['Env'].get('log_exire')
+        LOG_EXPIRE = data['Env'].get('log_expire')
         FIRST_RUN = data['Env'].get('isfirst')
         TMDB_API = data['Env'].get('tmdb_api')
         PLEX_ROLE = data['Task']['plex']['roletask'].get('run')
