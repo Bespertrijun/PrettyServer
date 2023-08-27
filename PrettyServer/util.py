@@ -194,4 +194,4 @@ class Util():
                 log.error('连接TMDB失败，1秒后重试...')
                 await asyncio.sleep(1)
                 log.info(f'第 {_} 重试中')
-        return data[respond['name']]['chs']
+        return {'chs':data[respond['name']]['chs']}
