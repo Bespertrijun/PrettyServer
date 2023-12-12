@@ -1,6 +1,7 @@
 import asyncio
 import traceback
 import opencc
+import time as Time
 from exception import FailRequest
 from log import log
 from aiohttp import ContentTypeError
@@ -36,19 +37,43 @@ class Util():
                 return False
         return True
 
+    def checkchs(self,name):
+        chs_list = []
+        chs = ''
+        lenth = len(name)
+        for n,ch in enumerate(name):
+            if n+1 != lenth:
+                if '\u4e00' <= ch <= '\u9fff':
+                    chs+=ch
+                    if not ('\u4e00' <= name[n+1] <= '\u9fff'):
+                        chs_list.append(chs)
+                        chs = ''
+                else:
+                    pass
+            else:
+                if '\u4e00' <= ch <= '\u9fff' and chs != '':
+                    chs+=ch
+                    chs_list.append(chs)
+        if len(chs_list) == 1:
+            if len(name) == len(chs_list[0]):
+                return []
+        return chs_list
+
     def formatchs(self,name):
         chs = ''
-        for n,ch in enumerate(name):
+        for ch in name:
             if '\u4e00' <= ch <= '\u9fff':
                 chs += ch
             elif ch.isalnum():
-                chs += f'{ch}-'
+                chs += ch    
             elif ch == '-':
-                pass
-            elif n == 0:
                 pass
             else:
                 chs += '-'
+        chs_list = self.checkchs(name)
+        if chs_list:
+            for ch in chs_list:
+                chs+= '-' + ch
         return chs
 
     def covertType(self,type):
@@ -80,7 +105,7 @@ class Util():
         data = await self._server.query(path_url,msg='请求失败，请检查网络或ekey')
         return data
 
-    async def query(self, path, method=None, headers=None, msg:str=None):
+    async def query(self, path, method=None, headers=None, data=None, json=None,msg:str=None):
         url = self.url + path
         header = self.header
         if not hasattr(self,'session'):
@@ -89,7 +114,7 @@ class Util():
             header.update(headers)
         if method is not None:
             if method.upper() == 'POST':
-                async with self.session.post(url,headers=header) as res:
+                async with self.session.post(url,headers=header,data=data,json=json) as res:
                     if res.status in (200, 201, 204):
                         try:
                             data = await res.json()
@@ -148,17 +173,25 @@ class Util():
             await self._server.query(path,method='post',msg='请求错误，调整未观看失败')
 
     async def timeline(self,time):
+        now_str = str(Time.time()).replace('.','')
         if self._server.type == 'plex':
             path = f'/:/timeline?ratingKey={self.ratingKey}&key={self.key}&identifier=com.plexapp.plugins.library&time={time}&state=stopped&duration={self.duration}'
             await self._server.query(path,msg='请求错误，调整观看进度失败')
         elif self._server.type == 'emby':
+            path = f'/Sessions/Playing'
             payload = {
                 'ItemId':self.Id,
-                'PositionTicks': time
+                'PositionTicks': time,
+                'PlaybackStartTimeTicks':now_str
+                }
+            await self._server.query(path,method='post',json=payload,msg='请求错误，调整观看开始时间失败')
+            payload = {
+                'ItemId':self.Id,
+                'PositionTicks': time,
+                'PlaybackStartTimeTicks':now_str
                 }
             path = f'/Sessions/Playing/Stopped'
-            url = self.bulidurl(path,payload)
-            await self._server.query(url,method='post',msg='请求错误，调整观看进度失败')
+            await self._server.query(path,method='post',json=payload,msg='请求错误，调整观看进度失败')
     
     async def request_tmdb(self,session,cid):
         url = f'https://api.themoviedb.org/3/person/{cid}?api_key={TMDB_API}&language=zh-CN'
@@ -187,11 +220,26 @@ class Util():
                             data[respond['name']]['chs'] = None
                             break
                     else: 
-                        return {'chs':[]}
+                        return {'chs':[]} 
+            except KeyboardInterrupt:
+                return
             except:
                 if _ == 2:
                     raise FailRequest(traceback.format_exc())
                 log.error('连接TMDB失败，1秒后重试...')
                 await asyncio.sleep(1)
                 log.info(f'第 {_} 重试中')
-        return {'chs':data[respond['name']]['chs']}
+        return {'chs':data[respond['name'   ]]['chs']}
+    
+    async def season_title(self,session,series_id,season_number):
+        path = f"https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}/translations?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with session.get(path,proxy=proxy) as res:
+            if res.status == 200:
+                respond =  await res.json()
+                for trans in respond.get("translations"):
+                    if trans.get("iso_3166_1") == "CN":
+                        if trans["data"].get("name"):
+                            return trans["data"].get("name")
+                        else:
+                            return None

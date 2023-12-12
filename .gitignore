@@ -22,3 +22,5 @@ venv/
 configtest.yaml
 Scripts
 *.json
+test.py
+*.sql

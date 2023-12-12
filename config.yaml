@@ -29,6 +29,14 @@ Task:
     sorttask: 
       run: True
       crontab: '0 6 * * *'
+    #定时刷新指定库
+    scantask:
+      run: True
+      library:
+      #格式 - 库名: crontab表达式 
+        - 新番: '* * * * *'
+        - 电影: '* * * * *'
+        - 啦啦啦: '* * * * *'
   emby:
     #替换中文演员
     roletask: 
@@ -39,20 +47,36 @@ Task:
     sorttask: 
       run: True
       crontab: '0 6 * * *'
+    #自动合并电影，混合内容库电影的重复内容
+    mergetask:
+      run: True
+      crontab: '0 6 * * *'
+    #修改emby剧集的季标题
+    titletask:
+      run: True
+      crontab: '0 6 * * *'
+    #定时刷新指定库 同plex
+    scantask:
+      run: False
+      library: 
+        - 电视节目: '* * * * *'
   #Emby，Plex观看同步
-  synctask: True
+  #同步规则：1分钟检测一次plex和emby观看信息
+  #1.若有已观看则优先已观看，2.优先观看进度较多的一方
+  synctask: 
+    run: True
+    #是否第一次运行脚本(用来同步所有媒体观看进度时候 **若想同步所有观看记录须填** )
+    isfirst: True
 
 Env:
-  #第一次运行脚本(观看进度同步第一次运行会同步所有媒体)
-  #同步规则：1.若有已观看则优先已观看，2.优先观看进度较多的一方
-  #是否第一次运行脚本(用来同步所有媒体观看进度时候 **若想同步所有观看记录须填** )
-  isfirst: True
   #协程并发数
   #若媒体库很大且服务器配置不高，并发数选择在100以内甚至更低，若土豪配置，请随意
-  concurrent_num: 100
+  concurrent_num: 1000
   #Tmdb API(若要Plex替换演员，则需要)
   tmdb_api: xxxxxxxxxxxxxxxx
   #日志存放路径，默认运行文件夹，绝对路径
   log_path: default
+  #日志记录等级：DEBUG,INFO,WARNING,ERROR
+  log_level: INFO
   #日志保留天数
   log_expire: 3

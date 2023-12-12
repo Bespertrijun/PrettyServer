@@ -86,19 +86,31 @@ class Plexserver(Util):
         else:
             return sort_medias
         
-
-    async def guidsearch(self,guid):
+    async def guidsearch(self,tmdb:str=None,tvdb:str=None,imdb:str=None):
         lb = await self.library()
         medias = []
         for section in lb.sections():
-            media = await section.guidsearch(guid)
-            if media:
-                medias.append(media)
+            if tmdb:
+                media = await section._guidsearch(f"tmdb://{tmdb}")
+                if media:
+                    medias.append(media)
+                    continue
+            if tvdb:
+                media = await section._guidsearch(f"tvdb://{tvdb}")
+                if media:
+                    medias.append(media)
+                    continue
+            if imdb:
+                media = await section._guidsearch(f"imdb://{imdb}")
+                if media:
+                    medias.append(media)
+                    continue
+                
         return medias
-
     #close plex aio session
     async def close(self):
-        await self.session.close()
+        if hasattr(self,"session"):
+            await self.session.close()
 
 class Library(Util):
     
@@ -130,26 +142,28 @@ class Section(Util):
         medias = []
         data = await self._server.query(f'/library/sections/{self.key}/all')
         self._totalsize = data['MediaContainer']['size']
-        for media in data['MediaContainer']['Metadata']:
-            if self.type.lower() == 'show':
-                medias.append(Show(media,self._server))
-            elif self.type.lower() == 'movie':
-                medias.append(Movie(media,self._server))
+        if self._totalsize > 0:
+            for media in data['MediaContainer']['Metadata']:
+                if self.type.lower() == 'show':
+                    medias.append(Show(media,self._server))
+                elif self.type.lower() == 'movie':
+                    medias.append(Movie(media,self._server))
         return medias
     
-    async def guidsearch(self,guid):
+    async def _guidsearch(self,guid):
         if guid.startswith('plex://'):
             data = await self._server.query(f'/library/sections/{self.key}/all?guid={guid}')
         else:
             data = await self._server.query(f'/library/sections/{self.key}/all?X-Plex-Container-Size=1&X-Plex-Container-Start=0')
-            ekey = data['MediaContainer']['Metadata'][0].get('ratingKey')
-            format_guid = guid.replace('://', '-')
-            data = await self._server.query(f'/library/metadata/{ekey}/matches?manual=1&title={format_guid}&agent={self.agent}')
-            if data['MediaContainer'].get('SearchResult'):
-                plex_guid = data['MediaContainer']['SearchResult'][0].get('guid')
-            else:
-                plex_guid = 0
-            data = await self._server.query(f'/library/sections/{self.key}/all?guid={plex_guid}')
+            if data['MediaContainer'].get('Metadata'):
+                ekey = data['MediaContainer']['Metadata'][0].get('ratingKey')
+                format_guid = guid.replace('://', '-')
+                data = await self._server.query(f'/library/metadata/{ekey}/matches?manual=1&title={format_guid}&agent={self.agent}')
+                if data['MediaContainer'].get('SearchResult'):
+                    plex_guid = data['MediaContainer']['SearchResult'][0].get('guid')
+                else:
+                    plex_guid = 0
+                data = await self._server.query(f'/library/sections/{self.key}/all?guid={plex_guid}')
         item_data = data['MediaContainer'].get('Metadata')
         if item_data:
             if self.type == 'show':
@@ -182,6 +196,10 @@ class Section(Util):
                 elif self.type == 'movie':
                     medias.append(Movie(item,self._server))
             return medias
+    #刷新媒体库
+    async def refresh(self):
+        path = f"/library/sections/{self.key}/refresh"
+        await self._server.query(path)
 
 class Media(Util):
 
@@ -198,6 +216,7 @@ class Media(Util):
         self.viewCount = self.data.get('viewCount')
         self.lastViewedAt = self.data.get('lastViewedAt')
         self.viewedAt = self.data.get('viewedAt')
+        self.tmdb = self.tmdbid = self.imdb = self.imdbid = self.tvdb = self.tvdbid = None
         if self.type:
             if self.type.lower() == 'movie':
                 self.duration = self.data.get('duration')
@@ -212,9 +231,9 @@ class Media(Util):
         if not self.title:
             self.data = data['MediaContainer']['Metadata'][0]
             self._loaddata()
-        self._Guid = data['MediaContainer']['Metadata'][0].get('Guid')
+        self.guid = data['MediaContainer']['Metadata'][0].get('Guid')
         try:
-            for guid in self._Guid:
+            for guid in self.guid:
                 if 'tmdb' in guid.get('id').lower():
                     self.tmdb = guid.get('id')
                     self.tmdbid = re.findall(r'\d+',guid.get('id'),re.S)[0]
@@ -225,7 +244,7 @@ class Media(Util):
                     self.tvdb = guid.get('id')
                     self.tvdbid = re.findall(r'\d+',guid.get('id'),re.S)[0]
         except:
-            log.critical(f'{self.title} do not have guid')
+            log.warning(f'{self.title} do not have guid')
         self._Role = data['MediaContainer']['Metadata'][0].get('Role')
         self.Country = data['MediaContainer']['Metadata'][0].get('Country')
         self.Genre = data['MediaContainer']['Metadata'][0].get('Genre')
@@ -397,4 +416,3 @@ class User(Util):
     def __init__(self,data,server) -> None:
         self.data = data
         self._server = server
-    

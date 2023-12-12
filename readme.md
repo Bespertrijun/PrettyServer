@@ -7,8 +7,11 @@
 roletask | 替换演员为中文名
 sorttask | 改变标题排序
 synctask | emby、plex观看同步
+scantask | emby、plex定时刷新媒体库
+mergetask | emby电影，混合内容库自动合并多版本电影
+titletask | 通过获取tmdb季标题，修改emby剧集季标题
 …… | ……
-
+TODO | 增加豆瓣源，增加docker部署方式
 </div>
 
 ### 1. 下载项目
