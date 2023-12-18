@@ -92,7 +92,8 @@ Server:
       run: False
       library: 
         - 电视节目: '* * * * *'
-
+  # ...... More Servers Here ......
+  # 可以通过复制格式来创建更多的服务器
 
 Synctask:
   # Emby，Plex观看同步
