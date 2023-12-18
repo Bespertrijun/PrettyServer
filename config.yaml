@@ -1,82 +1,137 @@
 #Server
 Server:
-  plex:
+    # 随意填，给你的plex起个名字，不要重复
+  - name: plex1
+    # 媒体服务器类型，plex 还是 emby
+    type: plex
     url: http://127.0.0.1:32400
-    token: xxxxxxxxxxxxxxxx
-  emby:
-    url: http://127.0.0.1:8096/emby
-    #apikey
     token: xxxxxxxxxxxxxxxxx
-    #若要使用同步进度，需要填写账密,只同步该用户观看进度
-    username: xxxx
-    password: xxxx
-
-#访问tmdb代理  
-Proxy:
-  #是否启用代理
-  isproxy: True
-  http: "http://user:pass@ip:port"
-
-Task:
-  #任务及运行时间
-  plex:
-    #替换中文演员
+    # 替换为中文演员
     roletask: 
-      run: True
+      # 是否运行 注意大小写
+      run: False
       #crontab表达式
       crontab: '0 6 * * *'
-    #调整标题排序规则
+    # 调整标题排序规则 + 拼音搜索
     sorttask: 
       run: True
       crontab: '0 6 * * *'
-    #定时刷新指定库
+    # 定时刷新指定库
     scantask:
-      run: True
-      library:
+      run: False
+      library: 
       #格式 - 库名: crontab表达式 
         - 新番: '* * * * *'
         - 电影: '* * * * *'
         - 啦啦啦: '* * * * *'
-  emby:
-    #替换中文演员
+
+  - name: plex2
+    type: plex
+    url: xxx
+    token: xxx
+    roletask:
+      run:
+      crontab:
+    sorttask:
+      run:
+      crontab:
+    scantask:
+      run:
+      library:
+
+  - name: emby1
+    type: emby
+    url: http://127.0.0.1:8096/emby
+    #apikey 填写了账密可以不填token
+    token: xxxxxxxxxxxxxxxxx
+    #若要使用同步进度，需要填写账密
+    username: xxxx
+    password: xxxx
+    # 替换中文演员
     roletask: 
-      run: True
+      run: False
       #crontab表达式
       crontab: '0 6 * * *'
-    #调整标题排序规则
+    # 调整标题排序规则 + 拼音搜索
     sorttask: 
-      run: True
-      crontab: '0 6 * * *'
-    #自动合并电影，混合内容库电影的重复内容
+      run: False
+      crontab: '* * * * *'
+    # 自动合并电影，混合内容库电影的重复内容
     mergetask:
-      run: True
-      crontab: '0 6 * * *'
-    #修改emby剧集的季标题
+      run: False
+      crontab: '* * * * *'
+    # 修改emby剧集的季标题
     titletask:
       run: True
-      crontab: '0 6 * * *'
-    #定时刷新指定库 同plex
+      crontab: '* * * * *'
+    # 定时刷新指定库 同plex
     scantask:
       run: False
       library: 
         - 电视节目: '* * * * *'
-  #Emby，Plex观看同步
-  #同步规则：1分钟检测一次plex和emby观看信息
-  #1.若有已观看则优先已观看，2.优先观看进度较多的一方
-  synctask: 
-    run: True
-    #是否第一次运行脚本(用来同步所有媒体观看进度时候 **若想同步所有观看记录须填** )
-    isfirst: True
+
+  - name: emby2
+    type: emby
+    url: http://127.0.0.1:8096/emby
+    token: xxxxxxxxxxxxxxxxx
+    username: xxxx
+    password: xxxx
+    roletask: 
+      run: False
+      crontab: '* * * * *'
+    sorttask: 
+      run: False
+      crontab: '* * * * *'
+    mergetask:
+      run: False
+      crontab: '* * * * *'
+    titletask:
+      run: False
+      crontab: '* * * * *'
+    scantask:
+      run: False
+      library: 
+        - 电视节目: '* * * * *'
+
+
+Synctask:
+  # Emby，Plex观看同步
+  # 同步规则：1分钟检测一次plex和emby观看信息
+  # 1.若有已观看则优先已观看，2.优先观看进度较多的一方
+    # 给这个任务取一个名 不要重复
+  - name: Taks1
+    # 是否同步最近进度
+    run: False
+    # 是否第一次运行脚本(用来同步所有媒体观看进度时候 **若想同步所有观看记录须填** )
+    isfirst: False
+    # 哪俩个服务器
+    which: 
+      # 填你刚才给服务器取的名，支持一个emby，一个plex
+      - plex1
+      - emby1
+  
+  - name: Taks2
+    run: False
+    isfirst: False
+    which: 
+      - plex2
+      - emby2
+      
 
 Env:
-  #协程并发数
-  #若媒体库很大且服务器配置不高，并发数选择在100以内甚至更低，若土豪配置，请随意
+  # Tmdb API (中文演员，emby季标题需要)
+  tmdb_api: 26edbd25d692245d1a8c2e6ac07cca06
+  # 协程并发数，越大越快，越吃系统资源
   concurrent_num: 1000
-  #Tmdb API(若要Plex替换演员，则需要)
-  tmdb_api: xxxxxxxxxxxxxxxx
-  #日志存放路径，默认运行文件夹，绝对路径
+  # 日志存放路径，默认运行文件夹
   log_path: default
-  #日志记录等级：DEBUG,INFO,WARNING,ERROR
+  # 日志记录等级：DEBUG,INFO,WARNING,ERROR
   log_level: INFO
-  #日志保留天数
+  # 日志保留天数
   log_expire: 3
+  # 仅访问tmdb代理
+  proxy:
+    # 是否启用代理
+    isproxy: False
+    # 只支持http代理
+    http: "http://user:pass@ip:port"

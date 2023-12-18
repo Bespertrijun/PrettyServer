@@ -1,12 +1,10 @@
-import asyncio
-import traceback
 import opencc
 import time as Time
-from exception import FailRequest
-from log import log
+from util.exception import FailRequest
 from aiohttp import ContentTypeError
 from aiohttp import ClientSession
-from conf import TMDB_API,PROXY,ISPROXY
+from util.exception import FailRequest
+from conf.conf import TMDB_API,PROXY,ISPROXY
 
 class Util():
     def bulidurl(self,url,payload:dict=None):
@@ -192,49 +190,38 @@ class Util():
                 }
             path = f'/Sessions/Playing/Stopped'
             await self._server.query(path,method='post',json=payload,msg='请求错误，调整观看进度失败')
-    
-    async def request_tmdb(self,session,cid):
+
+    async def get_chs_name(self,cid):
         url = f'https://api.themoviedb.org/3/person/{cid}?api_key={TMDB_API}&language=zh-CN'
         proxy = PROXY if ISPROXY else None
-        for _ in range(3):
-            try:
-                async with session.get(url,proxy=proxy) as res:
-                    if res.status == 200:
-                        respond =  await res.json()
-                        data = {}
-                        data[respond['name']] = {}
-                        data[respond['name']]['id'] = respond['id']
-                        data[respond['name']]['also_known_as'] = respond['also_known_as']
-                        if respond['also_known_as']:
-                            for chs_name in respond['also_known_as']:
-                                if self.check_chs(chs_name):
-                                    if self.issimple(chs_name):
-                                        data[respond['name']]['chs'] = chs_name
-                                        break
-                                    else:
-                                        data[respond['name']]['chs'] = None
-                                else:
-                                    data[respond['name']]['chs'] = None
-                            break
+        async with self._server.tmdb_session.get(url,proxy=proxy) as res:
+            if res.status == 200:
+                respond =  await res.json()
+                data = {}
+                data[respond['name']] = {}
+                data[respond['name']]['id'] = respond['id']
+                data[respond['name']]['also_known_as'] = respond['also_known_as']
+                if respond['also_known_as']:
+                    for chs_name in respond['also_known_as']:
+                        if self.check_chs(chs_name):
+                            if self.issimple(chs_name):
+                                data[respond['name']]['chs'] = chs_name
+                            else:
+                                data[respond['name']]['chs'] = None
                         else:
                             data[respond['name']]['chs'] = None
-                            break
-                    else: 
-                        return {'chs':[]} 
-            except KeyboardInterrupt:
-                return
-            except:
-                if _ == 2:
-                    raise FailRequest(traceback.format_exc())
-                log.error('连接TMDB失败，1秒后重试...')
-                await asyncio.sleep(1)
-                log.info(f'第 {_} 重试中')
-        return {'chs':data[respond['name'   ]]['chs']}
+                else:
+                    data[respond['name']]['chs'] = None
+            elif res.status == 404:
+                raise FailRequest("演员CID 不存在")
+            else: 
+                raise FailRequest("获取演员中文名失败")
+        return {'chs':data[respond['name']]['chs']}
     
-    async def season_title(self,session,series_id,season_number):
+    async def season_title(self,series_id,season_number):
         path = f"https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}/translations?api_key={TMDB_API}"
         proxy = PROXY if ISPROXY else None
-        async with session.get(path,proxy=proxy) as res:
+        async with self._server.tmdb_session.get(path,proxy=proxy) as res:
             if res.status == 200:
                 respond =  await res.json()
                 for trans in respond.get("translations"):
@@ -243,3 +230,27 @@ class Util():
                             return trans["data"].get("name")
                         else:
                             return None
+            if res.status == 404:
+                raise FailRequest("TMDBID或者季数 不存在")
+            else:
+                raise FailRequest("获取季标题失败")
+
+    async def get_role_from_id(self,type,tmdbid):
+        """
+            type: movie for movie, tv for tv
+        """
+        if type == "tv":
+            url = f'https://api.themoviedb.org/3/tv/{tmdbid}/aggregate_credits?api_key={TMDB_API}&language=zh-CN'
+        elif type == "movie":
+            url = f'https://api.themoviedb.org/3/movie/{tmdbid}/credits?api_key={TMDB_API}&language=zh-CN'
+        else:
+            raise FailRequest("Type 参数错误，只支持tv，movie")
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(url,proxy=proxy) as res:
+            if res.status == 200:
+                tmdb_data = await res.json()
+                return tmdb_data
+            if res.status == 404:
+                raise FailRequest("TMDBID 不存在")
+            else:
+                raise FailRequest("获取演员列表失败")

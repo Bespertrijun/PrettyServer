@@ -1,8 +1,8 @@
 import aiohttp
-from util import Util
-from log import log
+from util.util import Util
+from util.log import log
+from util.exception import MediaTypeError,AsyncError,InvalidParams
 from datetime import datetime
-from exception import MediaTypeError,AsyncError,InvalidParams
 
 class Embyserver(Util):
     def __init__(self,emby_url,emby_token=None,username=None,password=None) -> None:
@@ -107,6 +107,8 @@ class Embyserver(Util):
                 media.LastPlayedDate = datetime.fromisoformat(
                     item['UserData'].get("LastPlayedDate")[:-2])
                 medias.append(media)
+        if not medias:
+            log.warning(f'Emby({self.name})无继续观看记录')
         return medias
 
     async def history(self,**kwargs):
@@ -145,10 +147,8 @@ class Embyserver(Util):
             "Fields":"ProviderIds"
         }
         data = await self._server.query(self.bulidurl(path,payload))
-        persons = []
         for person in data.get("Items"):
-            persons.append(Person(person,self._server))
-        return persons
+            yield Person(person,self._server)
 
     async def merge_version(self,ids:list):
         if not hasattr(self,'userid'):
@@ -460,13 +460,14 @@ class Person(Media):
         self.Name = self.data.get("Name")
         self.ProviderIds = self.data.get('ProviderIds')
         self.tmdb = self.tmdbid = self.imdb = self.imdbid = self.tvdb = self.tvdbid = None
-        for k,v in self.ProviderIds.items():
-            if 'tmdb' == k.lower():
-                self.tmdb = 'tmdb://' + v if v else None
-                self.tmdbid = v if v else None
-            elif 'imdb' == k.lower():
-                self.imdb = 'imdb://' + v if v else None
-                self.imdbid = v if v else None
-            elif 'tvdb' == k.lower():
-                self.tvdb = 'tvdb://' + v if v else None
-                self.tvdbid = v if v else None
+        if self.ProviderIds != None:
+            for k,v in self.ProviderIds.items():
+                if 'tmdb' == k.lower():
+                    self.tmdb = 'tmdb://' + v if v else None
+                    self.tmdbid = v if v else None
+                elif 'imdb' == k.lower():
+                    self.imdb = 'imdb://' + v if v else None
+                    self.imdbid = v if v else None
+                elif 'tvdb' == k.lower():
+                    self.tvdb = 'tvdb://' + v if v else None
+                    self.tvdbid = v if v else None

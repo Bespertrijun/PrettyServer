@@ -2,7 +2,7 @@ import os
 import sys
 from datetime import timedelta
 from loguru import logger as log
-from conf import LOG_PATH,LOG_EXPIRE,LOG_LEVEL
+from conf.conf import LOG_PATH,LOG_EXPIRE,LOG_LEVEL
 
 if LOG_PATH in ('default',None):
     LOG_PATH = sys.path[0]

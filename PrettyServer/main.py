@@ -1,95 +1,66 @@
 import asyncio
 import traceback
 import warnings
+import aiohttp
 from pytz_deprecation_shim import PytzUsageWarning
-from plexserver import Plexserver
-from embyserver import Embyserver
-from task import Task
-from log import log
+from server.server import get_server
+from server.embyserver import Embyserver
+from task.synctask import SyncTask
+from util.log import log
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from conf import PLEX_TOKEN,PLEX_URL,EMBY_URL,EMBY_PW,EMBY_USERNAME,PLEX_ROLE,PLEX_ROLE_CRON\
-,PLEX_SORT,PLEX_SORT_CRON,FIRST_RUN,SYNC_TASK,EMBY_MERGE,EMBY_MERGE_CRON,EMBY_SORT,EMBY_SORT_CRON\
-,PLEX_SACN,EMBY_SACN,EMBY_ROLE,EMBY_ROLE_CRON,EMBY_TITLE,EMBY_TITLE_CRON
+from conf.conf import CONCURRENT_NUM,SYNC_TASK_LIST
 
-async def plex_roletask(task:Task):
-    await task.plex_role()
-
-async def plex_sorttask(task:Task):
-    await task.plex_sort()
-
-async def plex_sacntask(task:Task,scheduler:AsyncIOScheduler):
-    await task.plex_scan(scheduler)
-
-async def emby_sorttask(task:Task):
-    await task.emby_sort()
-
-async def emby_sacntask(task:Task,scheduler:AsyncIOScheduler):
-    await task.emby_scan(scheduler)
-
-async def emby_roletask(task:Task):
-    await task.emby_role()
-
-async def emby_titletask(task:Task):
-    await task.emby_season_title()
-
-async def cron_sync(task:Task):
-    await task.cronsync()
-
-async def sync_task(task:Task):
-    await task.synctask()
-
-async def merge_task(task:Task):
-    await task.emby_movie_merge()
+async def init_server_task(server,scheduler:AsyncIOScheduler):
+    if server.roletask.is_run:
+        scheduler.add_job(server.roletask.run,trigger=CronTrigger.from_crontab(server.roletask.crontab))
+    if server.sorttask.is_run:
+        scheduler.add_job(server.sorttask.run,trigger=CronTrigger.from_crontab(server.sorttask.crontab))
+    if server.scantask.is_run:
+        await server.scantask.run(scheduler)
+    if isinstance(server,Embyserver):
+        if server.mergetask.is_run:
+            scheduler.add_job(server.mergetask.run,trigger=CronTrigger.from_crontab(server.mergetask.crontab))
+        if server.titletask.is_run:
+            scheduler.add_job(server.titletask.run,trigger=CronTrigger.from_crontab(server.titletask.crontab))
 
 async def main():
     try:
         warnings.filterwarnings('ignore', category=PytzUsageWarning)
         scheduler = AsyncIOScheduler()
-        scheduler.start()
         log.info('初始化中.....')
-        plex = Plexserver(PLEX_URL,PLEX_TOKEN)
-        emby = Embyserver(EMBY_URL,username=EMBY_USERNAME,password=EMBY_PW)
-        task = Task(plex,emby)
-        await task.init()
-        if FIRST_RUN:
-            await sync_task(task)
-        if PLEX_SACN:
-            await plex_sacntask(task,scheduler)
-        if EMBY_SACN:
-            await emby_sacntask(task,scheduler)
-        if PLEX_ROLE:
-            scheduler.add_job(plex_roletask,args=[task], trigger=CronTrigger.from_crontab(PLEX_ROLE_CRON))
-        if PLEX_SORT:
-            scheduler.add_job(plex_sorttask,args=[task], trigger=CronTrigger.from_crontab(PLEX_SORT_CRON))
-        if EMBY_SORT:
-            scheduler.add_job(emby_sorttask,args=[task], trigger=CronTrigger.from_crontab(EMBY_SORT_CRON))
-        if EMBY_MERGE:
-            scheduler.add_job(merge_task,args=[task], trigger=CronTrigger.from_crontab(EMBY_MERGE_CRON))
-        if EMBY_ROLE:
-            scheduler.add_job(emby_roletask,args=[task], trigger=CronTrigger.from_crontab(EMBY_ROLE_CRON))
-        if EMBY_TITLE:
-            scheduler.add_job(emby_titletask,args=[task], trigger=CronTrigger.from_crontab(EMBY_TITLE_CRON))
-        if SYNC_TASK:
-            log.info('初始化同步参数')
-            await task.cronsync()
-            scheduler.add_job(cron_sync,args=[task], trigger='interval',minutes=1)
+        tmdb_session = aiohttp.ClientSession()
+        sem = asyncio.Semaphore(CONCURRENT_NUM)
+        servers = await get_server(tmdb_session,sem)
+        for server in servers:
+            await init_server_task(server,scheduler)
+        for task in SYNC_TASK_LIST:
+            t = SyncTask(task,servers)
+            if t.is_run:
+                if t.first:
+                    await t.synctask()
+                log.info(f'{t.name} 初始化同步参数')
+                await t.cronsync()
+                scheduler.add_job(t.cronsync, trigger='interval',minutes=1)
+        scheduler.start()
         log.info('启动完成，开始调度任务')
         while True:
-            await asyncio.sleep(60)
+            await asyncio.sleep(6000)
     except:
         log.critical(traceback.format_exc())
         log.info("退出任务中...")
-        await task.close()
-        await plex.close()
-        await emby.close()
         scheduler.remove_all_jobs()
+        for server in servers:
+            await server.close()
+        await tmdb_session.close()
         tasks = asyncio.all_tasks(loop=asyncio.get_running_loop())
         for t in tasks:
             t.cancel()
-        group = asyncio.gather(*tasks,return_exceptions=True)
-        asyncio.get_running_loop().run_until_complete(group)
-        asyncio.get_running_loop().close()
+        import sys
+        if sys.version_info.minor >= 10:
+            await asyncio.wait(tasks)
+        else:
+            await asyncio.wait(tasks,loop=asyncio.get_running_loop())
 
 if __name__ == '__main__':
     try:

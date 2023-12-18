@@ -3,9 +3,9 @@ import re
 import time
 from platform import uname
 from uuid import getnode
-from util import Util
-from exception import AsyncError,InvalidParams,FailRequest,MediaTypeError
-from log import log
+from util.util import Util
+from util.exception import AsyncError,InvalidParams,FailRequest,MediaTypeError
+from util.log import log
 
 class Plexserver(Util):
 
@@ -37,7 +37,7 @@ class Plexserver(Util):
         data = await self._server.query('/hubs/home/continueWatching')
         medias = []
         if data['MediaContainer'].get('size') == 0:
-            log.warning('Plex主界面没有继续观看')
+            log.warning(f'Plex({self.name})主界面没有继续观看')
         else:
             for item in data['MediaContainer'].get('Metadata'):
                 if item.get('type').lower() == 'movie':
@@ -60,7 +60,7 @@ class Plexserver(Util):
             data = await self._server.query(path,msg='请求历史失败')
             medias = []
             if data['MediaContainer'].get('size') == 0:
-                log.warning('Plex无历史播放记录')
+                log.warning(f'Plex({self.name})无历史播放记录')
             else:
                 for item in data['MediaContainer'].get('Metadata'):
                     if item.get('type').lower() == 'movie':

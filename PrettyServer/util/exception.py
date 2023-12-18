@@ -22,3 +22,6 @@ class ConfigError(BaseException):
 
 class InvalidParams(BaseException):
     pass
+
+class ServerTypeError(BaseException):
+    pass
