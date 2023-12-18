@@ -121,7 +121,7 @@ Synctask:
 
 Env:
   # Tmdb API (中文演员，emby季标题需要)
-  tmdb_api: 26edbd25d692245d1a8c2e6ac07cca06
+  tmdb_api: xxxxxxxxxxxxxxxx
   # 协程并发数，越大越快，越吃系统资源
   concurrent_num: 1000
   # 日志存放路径，默认运行文件夹

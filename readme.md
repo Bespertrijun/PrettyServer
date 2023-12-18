@@ -44,3 +44,6 @@ python ./PrettyServer/main.py
 `OSError: /lib/x86_64-linux-gnu/libm.so.6: version GLIBC_2.29' not found (required by /root/PrettyServer/lib/python3.7/site-packages/opencc/clib/lib/libopencc.so.1.1)`
 通过以下方式解决：`pip install --upgrade opencc`
 * 执行任务时，可能会出现内存激增的问题，之后可能会解决。
+* 对于plex中文演员，执行完后可能会发现修改失败，请尝试修改plex `在线媒体资源` -> `发现更多` -> 停用`发现来源`
+* 若报错`aiohttp.client_exceptions.InvalidURL: xxx/library/sections/`
+请在配置文件中删除你不需要的服务器 [Issues#4](https://github.com/Bespertrijun/PrettyServer/issues/4#issue-2046900493).
