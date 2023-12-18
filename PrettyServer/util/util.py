@@ -192,7 +192,7 @@ class Util():
             await self._server.query(path,method='post',json=payload,msg='请求错误，调整观看进度失败')
 
     async def get_chs_name(self,cid):
-        url = f'https://api.themoviedb.org/3/person/{cid}?api_key={TMDB_API}&language=zh-CN'
+        url = f'https://api.tmdb.org/3/person/{cid}?api_key={TMDB_API}&language=zh-CN'
         proxy = PROXY if ISPROXY else None
         async with self._server.tmdb_session.get(url,proxy=proxy) as res:
             if res.status == 200:
@@ -219,7 +219,7 @@ class Util():
         return {'chs':data[respond['name']]['chs']}
     
     async def season_title(self,series_id,season_number):
-        path = f"https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}/translations?api_key={TMDB_API}"
+        path = f"https://api.tmdb.org/3/tv/{series_id}/season/{season_number}/translations?api_key={TMDB_API}"
         proxy = PROXY if ISPROXY else None
         async with self._server.tmdb_session.get(path,proxy=proxy) as res:
             if res.status == 200:
@@ -240,9 +240,9 @@ class Util():
             type: movie for movie, tv for tv
         """
         if type == "tv":
-            url = f'https://api.themoviedb.org/3/tv/{tmdbid}/aggregate_credits?api_key={TMDB_API}&language=zh-CN'
+            url = f'https://api.tmdb.org/3/tv/{tmdbid}/aggregate_credits?api_key={TMDB_API}&language=zh-CN'
         elif type == "movie":
-            url = f'https://api.themoviedb.org/3/movie/{tmdbid}/credits?api_key={TMDB_API}&language=zh-CN'
+            url = f'https://api.tmdb.org/3/movie/{tmdbid}/credits?api_key={TMDB_API}&language=zh-CN'
         else:
             raise FailRequest("Type 参数错误，只支持tv，movie")
         proxy = PROXY if ISPROXY else None

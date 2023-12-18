@@ -47,3 +47,4 @@ python ./PrettyServer/main.py
 * 对于plex中文演员，执行完后可能会发现修改失败，请尝试修改plex `在线媒体资源` -> `发现更多` -> 停用`发现来源`
 * 若报错`aiohttp.client_exceptions.InvalidURL: xxx/library/sections/`
 请在配置文件中删除你不需要的服务器 [Issues#4](https://github.com/Bespertrijun/PrettyServer/issues/4#issue-2046900493).
+* 已更换tmdb api为 api.tmdb.org，对国内用户更加友好，无需代理。[Issues#3](https://github.com/Bespertrijun/PrettyServer/issues/3#issue-2046653124).

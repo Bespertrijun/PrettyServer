@@ -130,7 +130,7 @@ Env:
   log_level: INFO
   # 日志保留天数
   log_expire: 3
-  # 仅访问tmdb代理
+  # 仅访问tmdb代理(更换tmdb api，目前国内能访问)
   proxy:
     # 是否启用代理
     isproxy: False
