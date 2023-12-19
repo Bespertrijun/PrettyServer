@@ -206,6 +206,7 @@ class Util():
                         if self.check_chs(chs_name):
                             if self.issimple(chs_name):
                                 data[respond['name']]['chs'] = chs_name
+                                break
                             else:
                                 data[respond['name']]['chs'] = None
                         else:

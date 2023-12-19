@@ -30,15 +30,17 @@ Server:
     url: xxx
     token: xxx
     roletask:
-      run:
-      crontab:
+      run: False
+      crontab: '* * * * *'
     sorttask:
-      run:
-      crontab:
+      run: False
+      crontab: '* * * * *'
     scantask:
-      run:
+      run: False
       library:
-
+        - 新番: '* * * * *'
+        - 电影: '* * * * *'
+        - 啦啦啦: '* * * * *'
   - name: emby1
     type: emby
     url: http://127.0.0.1:8096/emby
