@@ -74,7 +74,7 @@ class Embyserver(Util):
             'Recursive': True,
             'AnyProviderIdEquals': search_key,
             #"Fields":"UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks"
-            "Fields":"UserData,ProviderIds",
+            "Fields":"UserData,ProviderIds,UserDataLastPlayedDate",
             'IncludeItemTypes': "Movie,Series"
         }
         url = self.bulidurl(path,payload)
@@ -93,7 +93,7 @@ class Embyserver(Util):
             await self.login()
         payload = {
             'Recursive':True,
-            "Fields":"UserData,ProviderIds"
+            "Fields":"UserData,ProviderIds,UserDataLastPlayedDate"
         }
         path = self.bulidurl(f'/Users/{self.userid}/Items/Resume',payload)
         data = await self._server.query(path)
@@ -123,7 +123,7 @@ class Embyserver(Util):
                 'SortOrder':'Descending',
                 'Recursive':True,
                 'Limit':20,
-                "Fields":"UserData,ProviderIds"
+                "Fields":"UserData,ProviderIds,UserDataLastPlayedDate"
             }
         path = self.bulidurl(f'/Users/{self.userid}/Items',payload)
         data = await self._server.query(path,msg='请求历史失败')
@@ -186,7 +186,7 @@ class Library(Util):
     async def all(self):
         data = await self.fetchitems(Recursive=True,ParentId=self.Id,
                                      IncludeItemTypes="Movie,Series",
-                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks")
+                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks,UserDataLastPlayedDate")
         if data.get('Items') == None:
             return []
         if self.CollectionType == None:
@@ -231,7 +231,7 @@ class MixContent(Library):
     async def get_movie(self):
         data = await self.fetchitems(Recursive=True,ParentId=self.Id,
                                      IncludeItemTypes="Movie",
-                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks")
+                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks,UserDataLastPlayedDate")
         if data.get('Items') == None:
             return []
         media = []
@@ -242,7 +242,7 @@ class MixContent(Library):
     async def get_series(self):
         data = await self.fetchitems(Recursive=True,ParentId=self.Id,
                                      IncludeItemTypes="Series",
-                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks")
+                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks,UserDataLastPlayedDate")
         if data.get('Items') == None:
             return []
         media = []
@@ -262,7 +262,7 @@ class SeriesLibrary(Library):
         seasons = []
         data = await self.fetchitems(Recursive=True,ParentId=self.Id,
                                      IncludeItemTypes="Season",
-                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks")
+                                     Fields="UserData,OriginalTitle,Etag,SortName,ForcedSortName,ProviderIds,RecursiveItemCount,RunTimeTicks,UserDataLastPlayedDate")
         for season in data.get("Items"):
             seasons.append(Season(season,self._server))
         return seasons

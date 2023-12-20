@@ -1,5 +1,7 @@
 import traceback
 import asyncio
+import time
+import datetime
 import server.embyserver as embyserver
 from server.plexserver import Movie,Episode
 from server.plexserver import Show
@@ -293,18 +295,21 @@ class SyncTask(ST):
             async with self.lock:
                 if not hasattr(self,'last_viewing'):
                     #plex最新继续观看时间戳
-                    self.last_viewing = plex_cont[0].lastViewedAt
+                    self.last_viewing = plex_cont[0].lastViewedAt if plex_cont else int(time.time())
                 if not hasattr(self,'last_viewed'):
-                    if not plex_history[0].viewedAt:
-                        self.last_viewed = plex_history[0].lastViewedAt
+                    if plex_history:
+                        if not plex_history[0].viewedAt:
+                            self.last_viewed = plex_history[0].lastViewedAt
+                        else:
+                            self.last_viewed = plex_history[0].viewedAt
                     else:
-                        self.last_viewed = plex_history[0].viewedAt
+                        self.last_viewed = int(time.time())
                 if not hasattr(self,'last_viewingdate'):
                     #emby最新继续观看时间戳
-                    self.last_viewingdate = emby_cont[0].LastPlayedDate
+                    self.last_viewingdate = emby_cont[0].LastPlayedDate if emby_cont else datetime.datetime.now(tz=datetime.timezone.utc)
                 if not hasattr(self,'last_vieweddate'):
                     #emby最新已观看时间戳
-                    self.last_vieweddate = emby_history[0].LastPlayedDate
+                    self.last_vieweddate = emby_history[0].LastPlayedDate if emby_history else datetime.datetime.now(tz=datetime.timezone.utc)
             #递归判断,所有新增plex继续观看
             for _cont in plex_cont:
                 if _cont.lastViewedAt - self.last_viewing > 0:
