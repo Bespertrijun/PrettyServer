@@ -11,34 +11,14 @@ scantask | emby、plex定时刷新媒体库
 mergetask | emby电影，混合内容库自动合并多版本电影
 titletask | 通过获取tmdb季标题，修改emby剧集季标题
 …… | ……
-TODO | 增加豆瓣源，增加docker部署方式
+TODO | 增加豆瓣源，plex集演员中文名
 </div>
 
-### 1. 下载项目
+### 1. 安装
 ```
-git clone https://github.com/Bespertrijun/PrettyServer.git
-cd PrettyServer
+docker run -d --name ps --network host -v <your_config.yaml>:/home/config.yaml -v <your_log_path>:/log bespertrijun/ps:2.0.2
 ```
-
-### 2. 修改配置文件
-
-```
-在 config.yaml 文件按需修改
-```
-
-### 3. 安装依赖
-```
-python -m pip install -r requirements.txt
-```
-
-### 4. 运行
-
-```
-#可以开个screen后台运行
-python ./PrettyServer/main.py
-```
-
-### 5. 注意事项
+### 2. 注意事项
 
 * 对于linux，若出现
 `OSError: /lib/x86_64-linux-gnu/libm.so.6: version GLIBC_2.29' not found (required by /root/PrettyServer/lib/python3.7/site-packages/opencc/clib/lib/libopencc.so.1.1)`
