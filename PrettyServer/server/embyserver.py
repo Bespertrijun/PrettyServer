@@ -13,6 +13,7 @@ class Embyserver(Util):
             self.token = emby_token
             self.header = {'X-Emby-Token': emby_token,"accept": "application/json"}
         self.url = emby_url.rstrip('/')
+        self.userid = None
         if self.url.split('/')[-1] != 'emby':
             self.url += '/emby'
         self.type = 'emby'
@@ -40,9 +41,10 @@ class Embyserver(Util):
         self.header = {'X-Emby-Token': self.token,"accept": "application/json"}
 
     async def library(self):
-        if not hasattr(self,'userid'):
-            await self.login()
-        path = f'/Users/{self.userid}/Views'
+        if self.userid:
+            path = f'/Users/{self.userid}/Views'
+        else:
+            path = "/Library/MediaFolders"
         data = await self.query(path,msg='请求错误')
         librarys = []
         for lb in data['Items']:
@@ -62,8 +64,6 @@ class Embyserver(Util):
             await self.session.close()
 
     async def guidsearch(self,tmdb:str=None,tvdb:str=None,imdb:str=None):
-        if not hasattr(self,'userid'):
-            await self.login()
         path = f'/Items'
         search_key = ''
         search_key += 'tmdb.'+ tmdb if tmdb else ''
@@ -77,6 +77,8 @@ class Embyserver(Util):
             "Fields":"UserData,ProviderIds,UserDataLastPlayedDate",
             'IncludeItemTypes': "Movie,Series"
         }
+        if not self.userid:
+            payload.pop("UserId")
         url = self.bulidurl(path,payload)
         data = await self.query(url,msg='请求失败，搜索未完成')
         emby_medias = []
@@ -89,8 +91,8 @@ class Embyserver(Util):
         return emby_medias
 
     async def hub_continue(self):
-        if not hasattr(self,'userid'):
-            await self.login()
+        if not self.userid:
+            raise InvalidParams("Emby没有登录，无法查询继续观看")
         payload = {
             'Recursive':True,
             "Fields":"UserData,ProviderIds,UserDataLastPlayedDate"
@@ -112,8 +114,8 @@ class Embyserver(Util):
         return medias
 
     async def history(self,**kwargs):
-        if not hasattr(self,'userid'):
-            await self.login()
+        if not self.userid:
+            raise InvalidParams("Emby没有登录，无法查询历史记录")
         if kwargs:
             payload = kwargs
         else:
@@ -150,16 +152,20 @@ class Embyserver(Util):
         for person in data.get("Items"):
             yield Person(person,self._server)
 
+    async def part_refresh(self, scan_path):
+        path = "/Library/Media/Updated"
+        headers = {"accept": "application/json", "Content-Type": "application/json"}
+        payload = {"Updates": [{"Path": f"{scan_path}", "UpdateType": "Created"}]}
+        await self.query(path,method="post",json=payload,headers=headers,msg=f'{self.name}: 刷新路径 {scan_path} 失败')
+
     async def merge_version(self,ids:list):
-        if not hasattr(self,'userid'):
-            await self.login()
         payload = {
             'Ids':','.join(ids)
         }
         path = self.bulidurl(f'/Videos/MergeVersions',payload)
         await self.query(path,method='post',msg='合并失败')
 
-class Library(Util):
+class Library(Util):    
     def __init__(self,data,server) -> None:
         self.data = data
         self._server = server
@@ -177,7 +183,10 @@ class Library(Util):
         self.CollectionType = self.data.get('CollectionType')
 
     async def fetchitems(self,**kwargs):
-        path = f'/Users/{self._server.userid}/Items'
+        if self._server.userid:
+            path = f'/Users/{self._server.userid}/Items'
+        else:
+            path = f'/Items'
         payload = kwargs
         url = self.bulidurl(path,payload)
         data = await self._server.query(url)
@@ -307,9 +316,9 @@ class Media(Util):
                 self.tvdbid = v if v else None
         self.RecursiveItemCount = self.data.get('RecursiveItemCount')
         self.RunTimeTicks = self.data.get('RunTimeTicks')
-        self.UserData = self.data.get('UserData')
-        if self.UserData.get("LastPlayedDate"):
-            self.LastPlayedDate = datetime.fromisoformat(self.UserData.get("LastPlayedDate")[:-2])
+        if self.UserData:
+            if self.UserData.get("LastPlayedDate"):
+                self.LastPlayedDate = datetime.fromisoformat(self.UserData.get("LastPlayedDate")[:-2])
     #刷新重载媒体数据
     async def fetchitem(self):
         data = await self._fetchitem(self.Id)
@@ -398,6 +407,8 @@ class Season(Media):
     async def episodes(self):
         path = f'/Shows/{self.SeriesId}/Episodes'
         payload = {'UserId': self._server.userid,'SeasonId':self.Id}
+        if not self._server.userid:
+            payload.pop("UserId")
         url = self.bulidurl(path,payload)
         data = await self._server.query(url)
         eps = []
@@ -436,8 +447,9 @@ class Episode(Media):
         data = await self._fetchitem(self.Id)
         self.data = data
         self._loaddata()
-        if self.UserData.get('LastPlayedDate'):
-            self.LastPlayedDate = datetime.fromisoformat(self.UserData.get('LastPlayedDate')[:-2])
+        if self.UserData:
+            if self.UserData.get('LastPlayedDate'):
+                self.LastPlayedDate = datetime.fromisoformat(self.UserData.get('LastPlayedDate')[:-2])
 
     async def GetShow(self):
         data:dict = self.data

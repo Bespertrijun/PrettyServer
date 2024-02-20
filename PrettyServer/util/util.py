@@ -99,12 +99,18 @@ class Util():
         if self._server.type == 'plex':
             path_url = f'/library/metadata/{ekey}'
         elif self._server.type == 'emby':
-            path_url = f'/Users/{self._server.userid}/Items/{ekey}'
+            if self._server.userid:
+                path_url = f'/Users/{self._server.userid}/Items/{ekey}'
+            else:
+                path_url = f'/Items/{ekey}'
         data = await self._server.query(path_url,msg='请求失败，请检查网络或ekey')
         return data
 
     async def query(self, path, method=None, headers=None, data=None, json=None,msg:str=None):
         url = self.url + path
+        if hasattr(self,"type"):
+            if self.type == "drive":
+                url = path
         header = self.header
         if not hasattr(self,'session'):
             self.session = ClientSession()
@@ -149,6 +155,12 @@ class Util():
                         data = await res.json()
                     except ContentTypeError:
                         data = res
+                        if hasattr(self,"type"):
+                            if self.type == "drive":
+                                try:
+                                    data = await res.text()
+                                except UnicodeDecodeError:
+                                    data = await res.read()
                 else:
                     raise FailRequest(msg)
         #log.debug('%s %s', method.__name__.upper(), url)
@@ -178,15 +190,17 @@ class Util():
         elif self._server.type == 'emby':
             path = f'/Sessions/Playing'
             payload = {
-                'ItemId':self.Id,
-                'PositionTicks': time,
-                'PlaybackStartTimeTicks':now_str
-                }
+                "PositionTicks": time,
+                "PlaybackStartTimeTicks": now_str,
+                "ItemId": self.Id,
+                "PlaySessionId": "77d5a0f04e5b4d2fb25773486d292f3f",
+            }
             await self._server.query(path,method='post',json=payload,msg='请求错误，调整观看开始时间失败')
             payload = {
                 'ItemId':self.Id,
                 'PositionTicks': time,
-                'PlaybackStartTimeTicks':now_str
+                'PlaybackStartTimeTicks':now_str,
+                "PlaySessionId": "77d5a0f04e5b4d2fb25773486d292f3f"
                 }
             path = f'/Sessions/Playing/Stopped'
             await self._server.query(path,method='post',json=payload,msg='请求错误，调整观看进度失败')
