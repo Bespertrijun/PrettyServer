@@ -16,9 +16,20 @@ TODO | 增加豆瓣源，plex集演员中文名
 
 ### 1. 安装
 ```
-docker run -d --name ps --network host -v <your_config.yaml>:/home/config.yaml -v <your_log_path>:/log bespertrijun/ps:2.0.2
+docker run -d --name ps --network host -v <your_config.yaml>:/home/config.yaml -v <your_log_path>:/log bespertrijun/ps:latest
 ```
-### 2. 注意事项
+
+### 2.更新
+```
+docker rm -f ps
+docker pull bespertrijun/ps:latest
+docker run -d --name ps --network host -v <your_config.yaml>:/home/config.yaml -v <your_log_path>:/log bespertrijun/ps:latest
+```
+
+### 3.更新说明
+ - 2024.02.21 修复了emby更新导致的bug （引进了emby api登录的bug，请保证用户名登录时候，config.yaml文件的的emby token为空）
+
+### 4. 注意事项
 
 * 对于linux，若出现
 `OSError: /lib/x86_64-linux-gnu/libm.so.6: version GLIBC_2.29' not found (required by /root/PrettyServer/lib/python3.7/site-packages/opencc/clib/lib/libopencc.so.1.1)`
