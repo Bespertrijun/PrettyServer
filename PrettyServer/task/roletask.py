@@ -32,7 +32,7 @@ class EmbyRoleTask(RoleTask):
             log.critical(f'{p.Name}修改中文名失败：{traceback.format_exc()}')
 
     async def run(self):
-        log.info(f"Emby({self.server.name})：开始进行演员中文化...")
+        log.info(f"{self.server.type.title()}({self.server.name})：开始进行演员中文化...")
         try:
             tasks = set()
             async for p in self.server.get_person():
@@ -40,7 +40,7 @@ class EmbyRoleTask(RoleTask):
                 future.add_done_callback(tasks.discard)
                 tasks.add(future)
             await asyncio.gather(*tasks,return_exceptions=True)
-            log.info(f"Emby({self.server.name})：演员中文化执行完毕")
+            log.info(f"{self.server.type.title()}({self.server.name})：演员中文化执行完毕")
         except (asyncio.CancelledError, KeyboardInterrupt):
             pass
         except:

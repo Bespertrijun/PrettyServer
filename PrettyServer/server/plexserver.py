@@ -197,9 +197,16 @@ class Section(Util):
                     medias.append(Movie(item,self._server))
             return medias
     #刷新媒体库
+    async def part_refresh(self,scan_path):
+        path = f"/library/sections/{self.key}/refresh"
+        para = {
+            "path": scan_path
+        }
+        await self._server.query(self.bulidurl(path,para),msg=f'{self.name}: 刷新路径 {scan_path} 失败')
+
     async def refresh(self):
         path = f"/library/sections/{self.key}/refresh"
-        await self._server.query(path)
+        await self._server.query(path,msg=f'{self.name}: 刷新媒体库失败')
 
 class Media(Util):
 
@@ -293,6 +300,9 @@ class Media(Util):
         path = f'/library/sections/{self.librarySectionID}/all'
         data = await self._server.query(path+'?'+para,method='put')
         return data
+
+    async def reload(self):
+        await self.fetchitem()
 
 class Movie(Media):
     def __init__(self,data,server):

@@ -2,6 +2,7 @@ import asyncio
 import traceback
 from server.plexserver import Plexserver
 from server.embyserver import Embyserver
+from server.jellyfinserver import Jellyfinserver
 from task.base import ScanTask as ST
 from util.log import log
 from apscheduler.triggers.cron import CronTrigger
@@ -14,7 +15,7 @@ class ScanTask(ST):
         try:
             if isinstance(self.server,Plexserver):
                 name = section.title
-            elif isinstance(self.server,Embyserver):
+            elif isinstance(self.server,(Embyserver,Jellyfinserver)):
                 name = section.Name
             log.info(f"{name}：开始扫描媒体库")
             await section.refresh()
@@ -29,7 +30,7 @@ class ScanTask(ST):
             if isinstance(self.server,Plexserver):
                 librarys = await self.server.library()
                 library = librarys.sections()
-            elif isinstance(self.server,Embyserver):
+            elif isinstance(self.server,(Embyserver,Jellyfinserver)):
                 library = await self.server.library()
             for lb in self.library:
                 for name,crontab in lb.items():
@@ -37,7 +38,7 @@ class ScanTask(ST):
                     for lb in library:
                         if isinstance(self.server,Plexserver):
                             lb_name = lb.title
-                        elif isinstance(self.server,Embyserver):
+                        elif isinstance(self.server,(Embyserver,Jellyfinserver)):
                             lb_name = lb.Name
                         if lb_name == name:
                             scheduler.add_job(self._scan,args=[lb], trigger=CronTrigger.from_crontab(crontab))

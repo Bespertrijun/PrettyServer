@@ -2,6 +2,7 @@ import asyncio
 import traceback
 from server.embyserver import Embyserver
 from server.embyserver import MixContent
+from server.jellyfinserver import Jellyfinserver
 from task.base import MergeTask as MT
 from util.log import log
 from util.exception import ServerTypeError
@@ -9,8 +10,8 @@ from util.exception import ServerTypeError
 class MergeTask(MT):
     def __init__(self, mediaserver, task_info: dict) -> None:
         super().__init__(mediaserver,task_info)
-        if not isinstance(self.server,Embyserver):
-            raise ServerTypeError("合并任务只支持emby")
+        if not isinstance(self.server,(Embyserver,Jellyfinserver)):
+            raise ServerTypeError("合并任务只支持emby,jellyfin")
 
     async def _merge(self,ids,name):
         async with self.server.sem:
@@ -71,7 +72,7 @@ class MergeTask(MT):
 
     async def run(self):
         tasks = set()
-        log.info(f"Emby({self.server.name})：开始合并版本任务，初始化中...")
+        log.info(f"{self.server.type.title()}({self.server.name})：开始合并版本任务，初始化中...")
         try:
             emby_library = await self.server.library()
             # 在emby媒体库中找出混合内容库和电影库
@@ -83,7 +84,7 @@ class MergeTask(MT):
                 else:
                     log.info(f"{lb.Name}：非电影库或者混合内容，Emby合并版本任务跳过此库")
             await asyncio.gather(*tasks,return_exceptions=True)
-            log.info(f"Emby({self.server.name})：合并版本任务完毕")
+            log.info(f"{self.server.type.title()}({self.server.name})：合并版本任务完毕")
         except (asyncio.CancelledError, KeyboardInterrupt):
             pass
         except:

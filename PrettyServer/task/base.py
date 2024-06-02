@@ -2,6 +2,7 @@ from asyncio import Lock
 from conf.conf import check_exist
 from server.plexserver import Plexserver
 from server.embyserver import Embyserver
+from server.jellyfinserver import Jellyfinserver
 class BaseTask():
     def __init__(self, mediaserver, task_info:dict) -> None:
         self.server = mediaserver
@@ -18,12 +19,17 @@ class SyncTask():
         self.is_run = check_exist(self._info, "run", 'Synctask')
         self._loadinfo()
         self.lock = Lock()
+        self.plex = self.emby = self.jellyfin = self.plex2 = None
         for server in servers:
             if server.name in self.which:
-                if isinstance(server,Plexserver):
+                if isinstance(server,Plexserver) and self.plex == None:
                     self.plex = server
-                elif isinstance(server,Embyserver):
+                elif (self.emby == None and self.jellyfin == None) and isinstance(server,(Jellyfinserver,Embyserver)):
                     self.emby = server
+                elif isinstance(server,(Jellyfinserver,Embyserver)):
+                    self.jellyfin = server
+                elif isinstance(server,Plexserver):
+                    self.plex2 = server
 
     def _loadinfo(self):
         self.first = check_exist(self._info, "isfirst", self.name)

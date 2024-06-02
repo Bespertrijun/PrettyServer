@@ -80,16 +80,21 @@ class Util():
         elif type.lower() == 'tvshows':
             return 'series'
     
-    def convertTime(self,time):
-        if self._server.type == 'plex':
-            return time*10000
-        elif self._server.type == 'emby':
-            return int(time/10000)
+    def convertTime(self,time,sync_type):
+        if time == None:
+            time = 0
+        if sync_type in (0,2):
+            return time
+        else:
+            if self._server.type == 'plex':
+                return time*10000
+            elif self._server.type in ('emby','jellyfin'):
+                return int(time/10000)
 
     def pretty_ep_out(self):
         if self._server.type == 'plex':
             return f'S{str(self.parentIndex).zfill(2)}E{str(self.index).zfill(2)}'
-        elif self._server.type == 'emby':
+        elif self._server.type in ('emby','jellyfin'):
             return f'S{str(self.ParentIndexNumber).zfill(2)}E{str(self.IndexNumber).zfill(2)}'
 
     async def _fetchitem(self,ekey):
@@ -98,7 +103,7 @@ class Util():
         """
         if self._server.type == 'plex':
             path_url = f'/library/metadata/{ekey}'
-        elif self._server.type == 'emby':
+        elif self._server.type in ('emby','jellyfin'):
             if self._server.userid:
                 path_url = f'/Users/{self._server.userid}/Items/{ekey}'
             else:
@@ -187,7 +192,7 @@ class Util():
         if self._server.type == 'plex':
             path = f'/:/timeline?ratingKey={self.ratingKey}&key={self.key}&identifier=com.plexapp.plugins.library&time={time}&state=stopped&duration={self.duration}'
             await self._server.query(path,msg='请求错误，调整观看进度失败')
-        elif self._server.type == 'emby':
+        elif self._server.type in ('emby','jellyfin'):
             path = f'/Sessions/Playing'
             payload = {
                 "PositionTicks": time,

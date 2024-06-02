@@ -2,7 +2,7 @@
 Server:
     # 随意填，给你的plex起个名字，不要重复
   - name: plex1
-    # 媒体服务器类型，plex 还是 emby
+    # 媒体服务器类型，plex 还是 emby/jellyfin
     type: plex
     url: http://127.0.0.1:32400
     token: xxxxxxxxxxxxxxxxx
@@ -41,6 +41,7 @@ Server:
         - 新番: '* * * * *'
         - 电影: '* * * * *'
         - 啦啦啦: '* * * * *'
+
   - name: emby1
     type: emby
     url: http://127.0.0.1:8096/emby
@@ -90,6 +91,32 @@ Server:
     titletask:
       run: False
       crontab: '* * * * *'
+    scantask:
+      run: False
+      library: 
+        - 电视节目: '* * * * *'
+
+  - name: jellyfin1
+    type: jellyfin
+    url: http://127.0.0.1:8096
+    #apikey 填写了账密可以不填token
+    token: xxxxxxxxxxxxxxxxx
+    #若要使用同步进度，需要填写账密
+    username: xxxx
+    password: xxxx
+    # 调整标题排序规则 + 拼音搜索
+    sorttask: 
+      run: False
+      crontab: '* * * * *'
+    # 自动合并电影，混合内容库电影的重复内容
+    mergetask:
+      run: False
+      crontab: '* * * * *'
+    # 修改jellyfin剧集的季标题
+    titletask:
+      run: True
+      crontab: '* * * * *'
+    # 定时刷新指定库 同plex
     scantask:
       run: False
       library: 

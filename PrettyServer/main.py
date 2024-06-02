@@ -5,6 +5,7 @@ import aiohttp
 from pytz_deprecation_shim import PytzUsageWarning
 from server.server import get_server
 from server.embyserver import Embyserver
+from server.jellyfinserver import Jellyfinserver
 from task.synctask import SyncTask
 from util.log import log
 from apscheduler.triggers.cron import CronTrigger
@@ -12,13 +13,16 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from conf.conf import CONCURRENT_NUM,SYNC_TASK_LIST
 
 async def init_server_task(server,scheduler:AsyncIOScheduler):
-    if server.roletask.is_run:
-        scheduler.add_job(server.roletask.run,trigger=CronTrigger.from_crontab(server.roletask.crontab))
+    if isinstance(server,Jellyfinserver):
+        pass
+    else:
+        if server.roletask.is_run:
+            scheduler.add_job(server.roletask.run,trigger=CronTrigger.from_crontab(server.roletask.crontab))
     if server.sorttask.is_run:
         scheduler.add_job(server.sorttask.run,trigger=CronTrigger.from_crontab(server.sorttask.crontab))
     if server.scantask.is_run:
         await server.scantask.run(scheduler)
-    if isinstance(server,Embyserver):
+    if isinstance(server,(Embyserver,Jellyfinserver)):
         if server.mergetask.is_run:
             scheduler.add_job(server.mergetask.run,trigger=CronTrigger.from_crontab(server.mergetask.crontab))
         if server.titletask.is_run:
