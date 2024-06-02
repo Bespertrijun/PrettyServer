@@ -27,7 +27,11 @@ docker run -d --name ps --network host -v <your_config.yaml>:/home/config.yaml -
 ```
 
 ### 3.更新说明
- - 2024.02.21 修复了emby更新导致的bug （引进了emby api登录的bug，请保证用户名登录时候，config.yaml文件的的emby token为空）
+ - 2024.02.21 ~修复了emby更新导致的bug （引进了emby api登录的bug，请保证用户名登录时候，config.yaml文件的的emby token为空）~
+ - 2024.06.02
+     - 修复2024.02.21的bug；
+     - 新增jellyfin（不支持演员中文化，同步进度）；
+     - 同步进度支持emby同步emby，plex同步plex。
 
 ### 4. 注意事项
 
