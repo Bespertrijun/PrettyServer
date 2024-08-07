@@ -206,7 +206,7 @@ class Section(Util):
 
     async def refresh(self):
         path = f"/library/sections/{self.key}/refresh"
-        await self._server.query(path,msg=f'{self.name}: 刷新媒体库失败')
+        await self._server.query(path,msg=f'{self.title}: 刷新媒体库失败')
 
 class Media(Util):
 
