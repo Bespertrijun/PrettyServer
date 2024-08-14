@@ -283,8 +283,8 @@ class SyncTask(ST):
                     name = server1_media.Name
             elif sync_type == 1:
                 if server1.type == 'plex':
-                    media_played = media.viewCount
                     media_playing = media.viewOffset
+                    media_played = media.viewedAt
                     if media_type == 'movie':
                         name = media.title
                     else:
@@ -297,8 +297,8 @@ class SyncTask(ST):
                     else:
                         name = server1_media.Name
             elif sync_type == 2:
-                media_played = media.viewCount
                 media_playing = media.viewOffset
+                media_played = media.viewedAt
                 if media_type == 'movie':
                     name = media.title
                 else:
@@ -316,7 +316,7 @@ class SyncTask(ST):
                         if isinstance(match_media,(emby.Show,jellyfin.Show,plex.Show)):
                             match_medias.append(match_media)
             if match_medias:
-                for match_media in match_medias:        
+                for match_media in match_medias:
                     if media_type == None:
                         raise
                     elif media_type == 'movie':
@@ -332,10 +332,10 @@ class SyncTask(ST):
                                         match_playdate = match_media.LastPlayedDate
                                         playdate = media.viewedAt
                                     else:
-                                        match_playdate = match_media.viewedAt
+                                        match_playdate = match_media.lastViewedAt
                                         playdate = media.LastPlayedDate
                                 elif sync_type == 2:
-                                    match_playdate = match_media.viewedAt
+                                    match_playdate = match_media.lastViewedAt
                                     playdate = media.viewedAt
                                 self.renew_date(playdate,match_playdate,'played',reverse)
                             log.info(f'{server2_name}服务器已观看：{name}')
@@ -385,8 +385,8 @@ class SyncTask(ST):
                                             match_playdate = match_media.lastViewedAt
                                             playdate = media.LastPlayedDate
                                     elif sync_type == 2:
-                                        match_playdate = match_media.viewedAt
-                                        playdate = media.lastViewedAt
+                                        match_playdate = match_media.lastViewedAt
+                                        playdate = media.viewedAt
                                     self.renew_date(playdate,match_playdate,'played',reverse)
                                 log.info(f'{name}.{media.pretty_ep_out()}：{server2_name}已观看') 
                             elif media_playing:
