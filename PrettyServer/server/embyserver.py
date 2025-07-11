@@ -95,7 +95,8 @@ class Embyserver(Util):
             raise InvalidParams("Emby没有登录，无法查询继续观看")
         payload = {
             'Recursive':True,
-            "Fields":"UserData,ProviderIds,UserDataLastPlayedDate"
+            "Fields":"UserData,ProviderIds,UserDataLastPlayedDate",
+            'MediaTypes': 'Video',
         }
         path = self.bulidurl(f'/Users/{self.userid}/Items/Resume',payload)
         data = await self._server.query(path)
@@ -125,7 +126,8 @@ class Embyserver(Util):
                 'SortOrder':'Descending',
                 'Recursive':True,
                 'Limit':20,
-                "Fields":"UserData,ProviderIds,UserDataLastPlayedDate"
+                "Fields":"UserData,ProviderIds,UserDataLastPlayedDate",
+                'MediaTypes': 'Video',
             }
         path = self.bulidurl(f'/Users/{self.userid}/Items',payload)
         data = await self._server.query(path,msg='请求历史失败')
