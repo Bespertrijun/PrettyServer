@@ -20,33 +20,34 @@ COPY requirements.txt /app/
 # 声明构建参数(Docker Buildx 自动注入)
 ARG TARGETARCH
 
-# 使用 TARGETARCH 判断目标架构
-RUN if [ "$TARGETARCH" = "amd64" ]; then \
-        echo "Building for AMD64 (x86_64)..." && \
-        pip install --no-cache-dir -r requirements.txt; \
-    elif [ "$TARGETARCH" = "arm64" ]; then \
-        echo "Building for ARM64 (aarch64)..." && \
+# 安装 Python 依赖
+RUN echo "==== Building for architecture: ${TARGETARCH:-unknown} ====" && \
+    pip install --no-cache-dir -r requirements.txt && \
+    echo "==== Python dependencies installed successfully ===="
+
+# ARM64 特殊处理: 安装 OpenCC (如果需要)
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+        echo "==== Installing OpenCC for ARM64 ====" && \
         apt-get update -y && \
         apt-get install -y --no-install-recommends wget build-essential cmake && \
         wget -q https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.1.1.tar.gz && \
         tar -xzf ver.1.1.1.tar.gz && \
-        rm -f ver.1.1.1.tar.gz && \
-        cd ./OpenCC-ver.1.1.1/python && \
-        pip install --no-cache-dir wheel && \
-        python setup.py bdist_wheel && \
-        cd ./dist && \
-        mv OpenCC-1.1.1-py3-none-manylinux1_aarch64.whl OpenCC-1.1.1-py3-none-linux_aarch64.whl && \
-        pip install --no-cache-dir ./OpenCC-1.1.1-py3-none-linux_aarch64.whl && \
+        cd ./OpenCC-ver.1.1.1 && \
+        mkdir build && cd build && \
+        cmake -DCMAKE_INSTALL_PREFIX=/usr .. && \
+        make -j$(nproc) && \
+        make install && \
+        ldconfig && \
         cd /app && \
-        rm -rf /app/OpenCC-ver.1.1.1 && \
-        pip install --no-cache-dir -r requirements.txt && \
+        rm -rf ./OpenCC-ver.1.1.1 ver.1.1.1.tar.gz && \
         apt-get remove -y wget build-essential cmake && \
-        apt-get autoremove -y; \
+        apt-get autoremove -y && \
+        apt-get clean -y && \
+        rm -rf /var/lib/apt/lists/* && \
+        echo "==== OpenCC installed successfully ===="; \
     else \
-        echo "Unsupported architecture: $TARGETARCH" && exit 1; \
-    fi && \
-    apt-get clean -y && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+        echo "==== Skipping OpenCC for ${TARGETARCH} ===="; \
+    fi
 
 # 复制应用代码
 COPY . /app
