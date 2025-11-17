@@ -15,19 +15,23 @@ RUN apt-get update -y && \
 WORKDIR /app
 
 # 分层复制：先复制依赖文件，利用 Docker 缓存
-COPY requirements.txt /app/
+COPY requirements.txt requirements-amd64.txt /app/
 
 # 声明构建参数(Docker Buildx 自动注入)
 ARG TARGETARCH
 
-# 安装 Python 依赖
+# 安装通用 Python 依赖
 RUN echo "==== Building for architecture: ${TARGETARCH:-unknown} ====" && \
     pip install --no-cache-dir -r requirements.txt && \
-    echo "==== Python dependencies installed successfully ===="
+    echo "==== Base dependencies installed successfully ===="
 
-# ARM64 特殊处理: 安装 OpenCC (如果需要)
-RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        echo "==== Installing OpenCC for ARM64 ====" && \
+# 架构特定处理: OpenCC
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        echo "==== Installing OpenCC from PyPI for AMD64 ====" && \
+        pip install --no-cache-dir -r requirements-amd64.txt && \
+        echo "==== OpenCC (PyPI) installed successfully ===="; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        echo "==== Compiling OpenCC from source for ARM64 ====" && \
         apt-get update -y && \
         apt-get install -y --no-install-recommends wget build-essential cmake && \
         wget -q https://github.com/BYVoid/OpenCC/archive/refs/tags/ver.1.1.1.tar.gz && \
@@ -38,15 +42,17 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
         make -j$(nproc) && \
         make install && \
         ldconfig && \
+        cd /app/OpenCC-ver.1.1.1/python && \
+        python setup.py install && \
         cd /app && \
         rm -rf ./OpenCC-ver.1.1.1 ver.1.1.1.tar.gz && \
         apt-get remove -y wget build-essential cmake && \
         apt-get autoremove -y && \
         apt-get clean -y && \
         rm -rf /var/lib/apt/lists/* && \
-        echo "==== OpenCC installed successfully ===="; \
+        echo "==== OpenCC (compiled) installed successfully ===="; \
     else \
-        echo "==== Skipping OpenCC for ${TARGETARCH} ===="; \
+        echo "==== WARNING: Unsupported architecture ${TARGETARCH}, skipping OpenCC ===="; \
     fi
 
 # 复制应用代码
