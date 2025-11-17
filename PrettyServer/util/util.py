@@ -5,8 +5,12 @@ from aiohttp import ContentTypeError
 from aiohttp import ClientSession
 from util.exception import FailRequest
 from conf.conf import TMDB_API,PROXY,ISPROXY
+import asyncio
 
 class Util():
+    # 类级别的缓存字典
+    _role_cache = {}  # 缓存已获取的演员数据
+    _pending_requests = {}  # 正在进行的请求（避免重复请求）
     def bulidurl(self,url,payload:dict=None):
         if '?' in url and payload:
             for k,v in payload.items():
@@ -258,19 +262,52 @@ class Util():
     async def get_role_from_id(self,type,tmdbid):
         """
             type: movie for movie, tv for tv
+            优化版本：添加缓存和请求去重，减少内存占用
         """
-        if type == "tv":
-            url = f'https://api.tmdb.org/3/tv/{tmdbid}/aggregate_credits?api_key={TMDB_API}&language=zh-CN'
-        elif type == "movie":
-            url = f'https://api.tmdb.org/3/movie/{tmdbid}/credits?api_key={TMDB_API}&language=zh-CN'
-        else:
-            raise FailRequest("Type 参数错误，只支持tv，movie")
-        proxy = PROXY if ISPROXY else None
-        async with self._server.tmdb_session.get(url,proxy=proxy) as res:
-            if res.status == 200:
-                tmdb_data = await res.json()
-                return tmdb_data
-            if res.status == 404:
-                raise FailRequest("TMDBID 不存在")
+        cache_key = f"{type}:{tmdbid}"
+
+        # 1. 检查缓存
+        if cache_key in Util._role_cache:
+            return Util._role_cache[cache_key]
+
+        # 2. 检查是否有正在进行的相同请求，避免重复请求
+        if cache_key in Util._pending_requests:
+            return await Util._pending_requests[cache_key]
+
+        # 3. 创建新请求任务
+        async def fetch():
+            if type == "tv":
+                url = f'https://api.tmdb.org/3/tv/{tmdbid}/aggregate_credits?api_key={TMDB_API}&language=zh-CN'
+            elif type == "movie":
+                url = f'https://api.tmdb.org/3/movie/{tmdbid}/credits?api_key={TMDB_API}&language=zh-CN'
             else:
-                raise FailRequest("获取演员列表失败")
+                raise FailRequest("Type 参数错误，只支持tv，movie")
+
+            proxy = PROXY if ISPROXY else None
+            async with self._server.tmdb_session.get(url,proxy=proxy) as res:
+                if res.status == 200:
+                    tmdb_data = await res.json()
+                    # 缓存结果
+                    Util._role_cache[cache_key] = tmdb_data
+                    return tmdb_data
+                if res.status == 404:
+                    raise FailRequest("TMDBID 不存在")
+                else:
+                    raise FailRequest("获取演员列表失败")
+
+        # 记录正在进行的请求
+        task = asyncio.create_task(fetch())
+        Util._pending_requests[cache_key] = task
+
+        try:
+            result = await task
+            return result
+        finally:
+            # 请求完成后移除
+            Util._pending_requests.pop(cache_key, None)
+
+    @classmethod
+    def clear_role_cache(cls):
+        """清空演员数据缓存，释放内存"""
+        cls._role_cache.clear()
+        cls._pending_requests.clear()

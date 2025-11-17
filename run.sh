@@ -1,2 +1,2 @@
 #!/bin/bash
-python ./PrettyServer/main.py
+python ./PrettyServer/web_main.py

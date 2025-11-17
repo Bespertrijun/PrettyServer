@@ -112,6 +112,27 @@ class Plexserver(Util):
         if hasattr(self,"session"):
             await self.session.close()
 
+    async def test_connection(self, timeout: float = 5.0) -> bool:
+        """测试服务器连接是否正常
+
+        Args:
+            timeout: 超时时间（秒），默认 5 秒
+        """
+        try:
+            import asyncio
+            # 使用 /library/sections 测试连接，添加超时限制
+            await asyncio.wait_for(
+                self.query('/library/sections/', msg='连接测试失败'),
+                timeout=timeout
+            )
+            return True
+        except asyncio.TimeoutError:
+            log.warning(f"Plex 服务器 {getattr(self, 'name', 'Unknown')} 连接超时 ({timeout}秒)")
+            return False
+        except Exception as e:
+            log.error(f"Plex 服务器连接测试异常: {e}")
+            return False
+
 class Library(Util):
     
     def __init__(self,data,server):

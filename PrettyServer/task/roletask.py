@@ -45,6 +45,11 @@ class EmbyRoleTask(RoleTask):
             pass
         except:
             log.critical(traceback.format_exc())
+        finally:
+            # 清空缓存，释放内存
+            from util.util import Util
+            Util.clear_role_cache()
+            log.info(f"{self.server.type.title()}({self.server.name})：已清空演员数据缓存")
 
 class PlexRoleTask(RoleTask):
     def __init__(self, mediaserver, task_info: dict) -> None:
@@ -116,3 +121,8 @@ class PlexRoleTask(RoleTask):
             pass
         except:
             log.critical(f'Plex({self.server.name})演员中文化执行失败：{traceback.format_exc()}')
+        finally:
+            # 清空缓存，释放内存
+            from util.util import Util
+            Util.clear_role_cache()
+            log.info(f"Plex({self.server.name})：已清空演员数据缓存")

@@ -63,6 +63,32 @@ class Embyserver(Util):
         if hasattr(self,"session"):
             await self.session.close()
 
+    async def test_connection(self, timeout: float = 5.0) -> bool:
+        """测试服务器连接是否正常
+
+        Args:
+            timeout: 超时时间（秒），默认 5 秒
+        """
+        try:
+            import asyncio
+            if self.userid:
+                path = f'/Users/{self.userid}'
+            else:
+                path = self.bulidurl('/System/Info', {'api_key': self.token})
+
+            # 添加超时限制
+            await asyncio.wait_for(
+                self.query(path, msg='连接测试失败'),
+                timeout=timeout
+            )
+            return True
+        except asyncio.TimeoutError:
+            log.warning(f"Emby 服务器 {getattr(self, 'name', 'Unknown')} 连接超时 ({timeout}秒)")
+            return False
+        except Exception as e:
+            log.error(f"Emby 服务器连接测试异常: {e}")
+            return False
+
     async def guidsearch(self,tmdb:str=None,tvdb:str=None,imdb:str=None):
         path = f'/Items'
         search_key = ''
@@ -166,6 +192,13 @@ class Embyserver(Util):
         }
         path = self.bulidurl(f'/Videos/MergeVersions',payload)
         await self.query(path,method='post',msg='合并失败')
+
+    async def get_library_by_id(self,lib_id):
+        libs = await self.library()
+        for lib in libs:
+            if lib.Id == lib_id:
+                return lib
+        return None
 
 class Library(Util):    
     def __init__(self,data,server) -> None:

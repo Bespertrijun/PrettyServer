@@ -32,19 +32,28 @@ class ScanTask(ST):
                 library = librarys.sections()
             elif isinstance(self.server,(Embyserver,Jellyfinserver)):
                 library = await self.server.library()
-            for lb in self.library:
-                for name,crontab in lb.items():
-                    exist = False
-                    for lb in library:
-                        if isinstance(self.server,Plexserver):
-                            lb_name = lb.title
-                        elif isinstance(self.server,(Embyserver,Jellyfinserver)):
-                            lb_name = lb.Name
-                        if lb_name == name:
-                            scheduler.add_job(self._scan,args=[lb], trigger=CronTrigger.from_crontab(crontab))
-                            exist = True
-                    if not exist:
-                        log.info(f"{name}：未在{self.server.type.capitalize()}库中找到{name}库，无法启动此名称刷新媒体库任务，请检查配置文件")
+            # 新格式：library = {"库id": {"name": "库名", "crontab": "表达式"}, ...}
+            for lib_id, lib_config in self.library.items():
+                name = lib_config.get('name')
+                crontab = lib_config.get('crontab')
+
+                if not name or not crontab:
+                    log.warning(f"库配置不完整，跳过：{lib_config}")
+                    continue
+
+                exist = False
+                for lb in library:
+                    if isinstance(self.server, Plexserver):
+                        lb_id = str(lb.key)
+                    elif isinstance(self.server, (Embyserver, Jellyfinserver)):
+                        lb_id = lb.Id
+
+                    if lb_id == lib_id:
+                        scheduler.add_job(self._scan, args=[lb], trigger=CronTrigger.from_crontab(crontab))
+                        exist = True
+                        break
+                if not exist:
+                    log.info(f"{name}(ID:{lib_id})：未在{self.server.type.capitalize()}库中找到此库，无法启动刷新媒体库任务，请检查配置文件")
             log.info(f"{self.server.type.capitalize()}({self.server.name})：定时刷新媒体库任务已启动")
         except (asyncio.CancelledError, KeyboardInterrupt):
             pass

@@ -17,6 +17,7 @@ class SyncTask():
         self._info = task_info
         self.name = check_exist(self._info, "name", 'Synctask')
         self.is_run = check_exist(self._info, "run", 'Synctask')
+        self.status = 'initializing'  # 初始状态：initializing, running, stopped, failed
         self._loadinfo()
         self.lock = Lock()
         self.plex = self.emby = self.jellyfin = self.plex2 = None

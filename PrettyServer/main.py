@@ -7,10 +7,11 @@ from server.server import get_server
 from server.embyserver import Embyserver
 from server.jellyfinserver import Jellyfinserver
 from task.synctask import SyncTask
+from task.collectionsynctask import CollectionSyncTask
 from util.log import log
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from conf.conf import CONCURRENT_NUM,SYNC_TASK_LIST
+from conf.conf import CONCURRENT_NUM,SYNC_TASK_LIST,COLLECTION_SYNC_TASK_LIST
 
 async def init_server_task(server,scheduler:AsyncIOScheduler):
     if isinstance(server,Jellyfinserver):
@@ -46,6 +47,12 @@ async def main():
                 log.info(f'{t.name} 初始化同步参数')
                 await t.cronsync()
                 scheduler.add_job(t.cronsync, trigger='interval',minutes=1)
+        
+        for task in COLLECTION_SYNC_TASK_LIST:
+            t = CollectionSyncTask(task, servers)
+            if t.is_run:
+                log.info(f'{t.name} 初始化合集同步任务')
+                scheduler.add_job(t.run, trigger=CronTrigger.from_crontab(t.crontab))
         scheduler.start()
         log.info('启动完成，开始调度任务')
         while True:

@@ -14,16 +14,18 @@ dirname = os.path.dirname(os.path.dirname(os.path.dirname(path)))
 with open(os.path.join(dirname,'config.yaml'), 'r', encoding='utf-8') as f:
     data = yaml.load(stream=f, Loader=yaml.FullLoader)
     try:
-        SERVER_LIST = check_exist(data ,'Server','conf')
+        SERVER_LIST = check_exist(data ,'Server','conf') or []
         if check_exist(data, 'Env', 'Env'):
             if check_exist(data['Env'], 'proxy', 'proxy'):
                 ISPROXY = check_exist(data['Env']['proxy'] ,'isproxy','proxy')
                 PROXY = check_exist(data['Env']['proxy'] ,'http','proxy')
             CONCURRENT_NUM = check_exist(data['Env'] ,'concurrent_num','Env')
-            LOG_PATH = "/log"
-            LOG_LEVEL = check_exist(data['Env'] ,'log_level','Env')
-            LOG_EXPIRE = check_exist(data['Env'] ,'log_expire','Env')
+            # Docker deployment: logs go to /conf/log
+            LOG_PATH = os.path.join(dirname, 'log')
+            LOG_LEVEL = "INFO"
+            LOG_EXPIRE = 7
             TMDB_API = check_exist(data['Env'] ,'tmdb_api','Env')
-        SYNC_TASK_LIST = check_exist(data ,'Synctask','conf')
+        SYNC_TASK_LIST = check_exist(data ,'Synctask','conf') or []
+        COLLECTION_SYNC_TASK_LIST = check_exist(data, 'CollectionSyncTask', 'conf') or []
     except:
         raise ConfigError('请检查config.yaml文件')
