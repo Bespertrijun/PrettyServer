@@ -16,14 +16,24 @@ TODO | 增加豆瓣源，plex集演员中文名
 
 ### 1. 安装
 ```
-docker run -d --name ps --network host -v <your_config.yaml>:/home/config.yaml -v <your_log_path>:/log bespertrijun/ps:latest
+docker run \
+-d \
+--name ps \
+-p 8000:8000 \
+-v /root/ps:/data \
+bespertrijun/ps:latest
 ```
 
 ### 2.更新
 ```
 docker rm -f ps
 docker pull bespertrijun/ps:latest
-docker run -d --name ps --network host -v <your_config.yaml>:/home/config.yaml -v <your_log_path>:/log bespertrijun/ps:latest
+docker run \
+-d \
+--name ps \
+-p 8000:8000 \
+-v /root/ps:/data \
+bespertrijun/ps:latest
 ```
 
 ### 3.更新说明
