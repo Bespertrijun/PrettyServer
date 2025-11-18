@@ -58,26 +58,24 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 # 复制应用代码
 COPY . /app
 
-# 创建数据目录(用于配置文件和日志等持久化数据)
-RUN mkdir -p /data/log && \
-    # 复制默认配置文件到 /app 作为模板
-    cp /app/config.yaml /app/config.yaml.example
-
 # 创建入口脚本
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
+# 确保数据目录存在\n\
+mkdir -p /data/log\n\
+\n\
 # 首次运行:如果 /data 没有配置文件,复制默认配置\n\
 if [ ! -f /data/config.yaml ]; then\n\
-    echo "First run: Initializing config.yaml..."\n\
-    cp /app/config.yaml.example /data/config.yaml\n\
+    echo "==== First run: Initializing config.yaml ===="\n\
+    cp /app/config.yaml /data/config.yaml\n\
     echo "Config file created at /data/config.yaml"\n\
-    echo "Please edit it and restart the container."\n\
+    echo "Please edit /data/config.yaml and restart the container."\n\
 fi\n\
 \n\
-# 创建软链接,让应用使用 /data 中的配置和日志\n\
-ln -sf /data/config.yaml /app/config.yaml\n\
-ln -sf /data/log /app/log\n\
+echo "==== Starting PrettyServer ===="\n\
+echo "Config: /data/config.yaml"\n\
+echo "Logs:   /data/log"\n\
 \n\
 # 启动应用\n\
 cd /app\n\

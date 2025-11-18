@@ -429,19 +429,9 @@ async def main():
         # 配置 Uvicorn 日志输出到文件
         from conf.conf import LOG_PATH
         os.makedirs(LOG_PATH, exist_ok=True)
-        uvicorn_log_file = os.path.join(LOG_PATH, f'uvicorn_{datetime.now().strftime("%Y-%m-%d")}.log')
 
-        # 配置 uvicorn 日志处理器
-        file_handler = logging.FileHandler(uvicorn_log_file, encoding='utf-8')
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        ))
-
-        # 为 uvicorn 的各个 logger 添加文件处理器
-        for logger_name in ["uvicorn", "uvicorn.access", "uvicorn.error"]:
-            logger = logging.getLogger(logger_name)
-            logger.addHandler(file_handler)
+        # Uvicorn/FastAPI 日志输出到 stdout (可通过 docker logs 查看)
+        # 应用日志仍然写入 /data/log
 
         # 初始化调度器和任务
         await initialize_scheduler()
