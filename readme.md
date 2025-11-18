@@ -22,6 +22,10 @@ docker run \
 -p 8000:8000 \
 -v /root/ps:/data \
 bespertrijun/ps:latest
+
+----------------------
+初始账号：admin
+初始密码：admin
 ```
 
 ### 2.更新
