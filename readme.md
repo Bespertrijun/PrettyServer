@@ -42,6 +42,8 @@ bespertrijun/ps:latest
      - 修复2024.02.21的bug；
      - 新增jellyfin（不支持演员中文化，同步进度）；
      - 同步进度支持emby同步emby，plex同步plex。
+ - 2025.11.18
+     - 更新前端
 
 ### 4. 注意事项
 
