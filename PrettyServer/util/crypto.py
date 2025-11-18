@@ -31,47 +31,72 @@ class CryptoManager:
 
     def _ensure_keys(self):
         """确保 ECC 密钥对存在，如果不存在则创建"""
-        # 密钥文件路径（存储在项目根目录）
-        current_file = Path(__file__).resolve()
-        project_root = current_file.parent.parent.parent
-        private_key_file = project_root / '.private_key.pem'
-        public_key_file = project_root / '.public_key.pem'
+        # 密钥文件路径：Docker 分支固定使用 /data 目录
+        key_dir = Path('/data')
+
+        log.info(f"==== 检查 ECC 密钥对 ====")
+        log.info(f"密钥存储路径: {key_dir}")
+
+        # 确保目录存在
+        key_dir.mkdir(parents=True, exist_ok=True)
+
+        private_key_file = key_dir / '.private_key.pem'
+        public_key_file = key_dir / '.public_key.pem'
 
         if private_key_file.exists() and public_key_file.exists():
             # 读取现有密钥对
-            with open(private_key_file, 'rb') as f:
-                self._private_key = serialization.load_pem_private_key(
-                    f.read(),
-                    password=None,
-                    backend=default_backend()
-                )
-            with open(public_key_file, 'rb') as f:
-                self._public_key = serialization.load_pem_public_key(
-                    f.read(),
-                    backend=default_backend()
-                )
-            log.info("已加载现有 ECC 密钥对")
+            try:
+                with open(private_key_file, 'rb') as f:
+                    self._private_key = serialization.load_pem_private_key(
+                        f.read(),
+                        password=None,
+                        backend=default_backend()
+                    )
+                with open(public_key_file, 'rb') as f:
+                    self._public_key = serialization.load_pem_public_key(
+                        f.read(),
+                        backend=default_backend()
+                    )
+                log.info(f"✓ 已加载现有 ECC 密钥对")
+                log.info(f"  私钥: {private_key_file}")
+                log.info(f"  公钥: {public_key_file}")
+            except Exception as e:
+                log.error(f"✗ 密钥加载失败: {e}")
+                log.info("重新生成密钥对...")
+                private_key_file.unlink(missing_ok=True)
+                public_key_file.unlink(missing_ok=True)
+                self._ensure_keys()
+                return
         else:
             # 生成新的 ECC 密钥对（使用 secp256r1 曲线）
+            log.info("未找到现有密钥，生成新的 ECC 密钥对...")
             self._private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
             self._public_key = self._private_key.public_key()
 
-            # 保存私钥
-            with open(private_key_file, 'wb') as f:
-                f.write(self._private_key.private_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption()
-                ))
+            try:
+                # 保存私钥
+                with open(private_key_file, 'wb') as f:
+                    f.write(self._private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.PKCS8,
+                        encryption_algorithm=serialization.NoEncryption()
+                    ))
 
-            # 保存公钥
-            with open(public_key_file, 'wb') as f:
-                f.write(self._public_key.public_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PublicFormat.SubjectPublicKeyInfo
-                ))
+                # 保存公钥
+                with open(public_key_file, 'wb') as f:
+                    f.write(self._public_key.public_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PublicFormat.SubjectPublicKeyInfo
+                    ))
 
-            log.info("已生成新的 ECC 密钥对")
+                log.info(f"✓ 已生成并保存新的 ECC 密钥对")
+                log.info(f"  私钥: {private_key_file}")
+                log.info(f"  公钥: {public_key_file}")
+            except Exception as e:
+                log.error(f"✗ 密钥保存失败: {e}")
+                raise
+
+        log.info("==== ECC 密钥检查完成 ====")
 
     def encrypt_password(self, password: str) -> str:
         """
