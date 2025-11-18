@@ -2,10 +2,17 @@ import opencc
 import time as Time
 from util.exception import FailRequest
 from aiohttp import ContentTypeError
-from aiohttp import ClientSession
+from aiohttp import ClientSession,ClientTimeout
 from util.exception import FailRequest
 from conf.conf import TMDB_API,PROXY,ISPROXY
 import asyncio
+
+_timeout = ClientTimeout(
+    connect=3,          # 3秒内必须建立起连接
+    sock_connect=5,     # 5秒内必须完成socket连接
+    sock_read=10,       # 等待服务器发送数据的间隔最多10秒
+    total=30            # 整个请求（包括上传数据）必须在30秒内完成
+)
 
 class Util():
     # 类级别的缓存字典
@@ -127,7 +134,7 @@ class Util():
             header.update(headers)
         if method is not None:
             if method.upper() == 'POST':
-                async with self.session.post(url,headers=header,data=data,json=json) as res:
+                async with self.session.post(url,headers=header,data=data,json=json,timeout=_timeout) as res:
                     if res.status in (200, 201, 204):
                         try:
                             data = await res.json()
@@ -137,7 +144,7 @@ class Util():
                         raise FailRequest(msg)
                 #headers.update({'Content-type': 'application/x-www-form-urlencoded'})
             elif method.upper() == 'PUT':
-                async with self.session.put(url,headers=header) as res:
+                async with self.session.put(url,headers=header,timeout=_timeout) as res:
                     if res.status in (200, 201, 204):
                         try:
                             data = await res.json()
@@ -146,7 +153,7 @@ class Util():
                     else:
                         raise FailRequest(msg)
             elif method.upper() == 'DELETE':
-                async with self.session.delete(url,headers=header) as res:
+                async with self.session.delete(url,headers=header,timeout=_timeout) as res:
                     if res.status in (200, 201, 204):
                         try:
                             data = await res.json()
@@ -158,7 +165,7 @@ class Util():
                 #print("Invalid request method provided: {method}".format(method=method))
                 return
         else:
-            async with self.session.get(url,headers=header) as res:
+            async with self.session.get(url,headers=header,timeout=_timeout) as res:
                 if res.status in (200, 201, 204):
                     try:
                         data = await res.json()
