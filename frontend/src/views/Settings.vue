@@ -117,12 +117,6 @@
               <el-input v-model="envConfig.proxy.http" placeholder="http://user:pass@ip:port" />
               <div class="form-tip">仅支持 HTTP 代理，格式: http://user:pass@ip:port 或 http://ip:port</div>
             </el-form-item>
-            <el-form-item label="启用双因素认证">
-              <el-switch v-model="envConfig.use_2fa" disabled />
-            </el-form-item>
-            <div class="form-tip" style="margin-top: -16px; margin-bottom: 18px; margin-left: 150px;">
-              此选项自动跟随双因素认证配置状态（配置 2FA 后自动启用，禁用 2FA 后自动关闭）
-            </div>
             <el-form-item class="button-form-item">
               <div class="button-group">
                 <el-button type="primary" @click="saveConfig" :loading="saving">
