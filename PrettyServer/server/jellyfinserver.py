@@ -1,43 +1,79 @@
 import aiohttp
+import asyncio
+from functools import wraps
 from util.util import Util
 from util.log import log
 from util.exception import MediaTypeError,AsyncError,InvalidParams
 from datetime import datetime
+
+def require_login(func):
+    """装饰器：确保方法执行前已登录，失败时自动重试登录"""
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        # 检查是否需要登录
+        if not hasattr(self, 'token') or not self.token:
+            if not hasattr(self, 'uname') or not hasattr(self, 'pw'):
+                raise InvalidParams(f'{func.__name__}: 未提供登录凭据，无法自动登录')
+
+            try:
+                log.info(f'{func.__name__}: 尝试登录...')
+                await self.login()
+            except Exception as e:
+                log.error(f'{func.__name__}: 登录失败')
+                raise AsyncError(f'{func.__name__}: 登录失败，请检查网络或账密: {str(e)}')
+
+        # 执行原方法
+        return await func(self, *args, **kwargs)
+    return wrapper
 
 class Jellyfinserver(Util):
     def __init__(self,jf_url,jf_token=None,username=None,password=None) -> None:
         if username and password:
             self.uname = username
             self.pw = password
+            self.token = None  # 初始化为 None，需要登录
         else:
             self.token = jf_token
             self.header = {'X-Emby-Token': jf_token,"accept": "application/json"}
         self.url = jf_url.rstrip('/')
         self.userid = None
+        self._login_lock = asyncio.Lock()  # 防止并发登录
         self.type = 'jellyfin'
         self._server = self
 
     async def login(self):
-        if not hasattr(self,'session'):
-            self.session = aiohttp.ClientSession()
-        header = {'x-emby-authorization':
-            'Emby UserId="python",'
-            'Client="python",'
-            'Device="Embypretty",'
-            'DeviceId="jf_0910",'
-            'Version="1.0.1"'}
-        payload = {
-            'Username':self.uname,
-            'Pw':self.pw
-        }
-        self.header = header
-        data = await self.query("/Users/AuthenticateByName",method='POST',headers=self.header,
-                                json=payload,
-                                msg='请求失败，请检查账密')
-        self.token = data.get('AccessToken')
-        self.userid = data['User'].get('Id')
-        self.header = {'X-Emby-Token': self.token,"accept": "application/json"}
+        """登录到 Jellyfin 服务器，带重试和错误处理"""
+        async with self._login_lock:  # 防止并发登录
+            if not hasattr(self,'session'):
+                self.session = aiohttp.ClientSession()
 
+            if not hasattr(self, 'uname') or not hasattr(self, 'pw'):
+                raise InvalidParams('未提供用户名和密码，无法登录')
+
+            header = {'x-emby-authorization':
+                'Emby UserId="python",'
+                'Client="python",'
+                'Device="Embypretty",'
+                'DeviceId="jf_0910",'
+                'Version="1.0.1"'}
+            payload = {
+                'Username':self.uname,
+                'Pw':self.pw
+            }
+            self.header = header
+
+            try:
+                data = await self.query("/Users/AuthenticateByName",method='POST',headers=self.header,
+                                        json=payload,
+                                        msg='登录失败，请检查账密或网络')
+                self.token = data.get('AccessToken')
+                self.userid = data['User'].get('Id')
+                self.header = {'X-Emby-Token': self.token,"accept": "application/json"}
+                log.info(f'Jellyfin 服务器登录成功: {self.url}')
+            except Exception as e:
+                log.error(f'Jellyfin 服务器登录失败: {self.url}, 错误: {str(e)}')
+                raise
+    @require_login
     async def library(self):
         if self.userid:
             path = f'/Users/{self.userid}/Views'
@@ -60,7 +96,7 @@ class Jellyfinserver(Util):
     async def close(self):
         if hasattr(self,"session"):
             await self.session.close()
-
+    @require_login
     async def test_connection(self, timeout: float = 5.0) -> bool:
         """测试服务器连接是否正常
 
@@ -87,6 +123,7 @@ class Jellyfinserver(Util):
             log.error(f"Jellyfin 服务器连接测试异常: {e}")
             return False
 
+    @require_login
     async def guidsearch(self,tmdb:str=None,tvdb:str=None,imdb:str=None):
         path = f'/Search/Hints'
         search_key = ''
@@ -101,8 +138,6 @@ class Jellyfinserver(Util):
             "Fields":"UserData,ProviderIds,UserDataLastPlayedDate",
             'IncludeItemTypes': "Movie,Series"
         }
-        if not self.userid:
-            payload.pop("UserId")
         url = self.bulidurl(path,payload)
         data = await self.query(url,msg='请求失败，搜索未完成')
         emby_medias = []
@@ -114,9 +149,10 @@ class Jellyfinserver(Util):
                     emby_medias.append(Show(item,self._server))
         return emby_medias
 
+    @require_login
     async def hub_continue(self):
         if not self.userid:
-            raise InvalidParams("Jellyfin没有登录，无法查询继续观看")
+            raise InvalidParams('hub_continue: 此方法需要用户ID，请使用用户名和密码登录（不支持仅使用 API Token）')
         payload = {
             'Recursive':True,
             "Fields":"UserData,ProviderIds,UserDataLastPlayedDate"
@@ -137,9 +173,10 @@ class Jellyfinserver(Util):
             log.warning(f'Jellyfin({self.name})无继续观看记录')
         return medias
 
+    @require_login
     async def history(self,**kwargs):
         if not self.userid:
-            raise InvalidParams("Jellyfin没有登录，无法查询历史记录")
+            raise InvalidParams('history: 此方法需要用户ID，请使用用户名和密码登录（不支持仅使用 API Token）')
         if kwargs:
             payload = kwargs
         else:
