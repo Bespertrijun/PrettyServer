@@ -71,7 +71,7 @@ class Jellyfinserver(Util):
                 self.header = {'X-Emby-Token': self.token,"accept": "application/json"}
                 log.info(f'Jellyfin 服务器登录成功: {self.url}')
             except Exception as e:
-                log.error(f'Jellyfin 服务器登录失败: {self.url}, 错误: {str(e)}')
+                log.error(f'Jellyfin 服务器登录失败: 请检查账密或网络')
                 raise
     @require_login
     async def library(self):
