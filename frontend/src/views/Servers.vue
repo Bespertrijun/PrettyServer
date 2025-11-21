@@ -578,6 +578,7 @@ const newServer = ref({
 // 库扫描配置相关状态
 const availableLibraries = ref<Record<string, Library[]>>({})
 const loadingLibraries = ref<Record<string, boolean>>({})
+const librariesFullyLoaded = ref<Record<string, boolean>>({})
 
 // 保存和添加操作的 loading 状态
 const savingConfig = ref<Record<string, boolean>>({})
@@ -769,6 +770,15 @@ const LoadConfig = async (row: ServerInfo) => {
       }
 
       editFormData.value[row.name] = editData
+
+      // 从配置中提取已有的库信息，填充到 availableLibraries 以便立即显示库名
+      if (editData.scantask?.library) {
+        const libraries = Object.entries(editData.scantask.library).map(([id, config]: [string, any]) => ({
+          id: id,
+          name: config.name
+        }))
+        availableLibraries.value[row.name] = libraries
+      }
     } catch (error : any) {
       console.error('获取服务器配置失败:', error)
       ElMessage.error('获取服务器配置失败: '+ error.message + '，请检查日志')
@@ -932,12 +942,15 @@ const addScanLibrary = (serverName: string) => {
 
 // 点击select时加载库列表
 const loadLibrariesForSelect = async (serverName: string) => {
-  if (availableLibraries.value[serverName]) return // 已加载过
+  // 如果已经从服务器加载过完整列表，跳过
+  if (librariesFullyLoaded.value[serverName]) return
 
   loadingLibraries.value[serverName] = true
   try {
     const response = await serverApi.getServerLibraries(serverName)
     availableLibraries.value[serverName] = response.libraries
+    // 标记为已加载完整列表
+    librariesFullyLoaded.value[serverName] = true
   } catch (error: any) {
     console.error('加载服务器库列表失败:', error)
     ElMessage.error('加载库列表失败: ' + error.message + '，请检查日志')
