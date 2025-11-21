@@ -31,8 +31,13 @@ class CryptoManager:
 
     def _ensure_keys(self):
         """确保 ECC 密钥对存在，如果不存在则创建"""
-        # 密钥文件路径：Docker 分支固定使用 /data 目录
-        key_dir = Path('/data')
+        # 密钥文件路径：优先使用 /data (Docker)，否则使用项目根目录 (开发环境)
+        if Path('/data').exists():
+            key_dir = Path('/data')
+        else:
+            # 开发环境：使用项目根目录
+            current_file = Path(__file__).resolve()
+            key_dir = current_file.parent.parent.parent
 
         log.info(f"==== 检查 ECC 密钥对 ====")
         log.info(f"密钥存储路径: {key_dir}")

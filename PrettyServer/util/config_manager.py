@@ -26,10 +26,15 @@ class ConfigManager:
 
     def __init__(self):
         if not hasattr(self, 'initialized'):
-            # 获取配置文件路径
-            current_file = Path(__file__).resolve()
-            project_root = current_file.parent.parent.parent
-            self.config_path = project_root / 'config.yaml'
+            # 配置文件路径：优先使用 /data/config.yaml (Docker)，否则使用项目根目录
+            data_config = Path('/data/config.yaml')
+            if data_config.exists():
+                self.config_path = data_config
+            else:
+                # 开发环境：使用项目根目录
+                current_file = Path(__file__).resolve()
+                project_root = current_file.parent.parent.parent
+                self.config_path = project_root / 'config.yaml'
 
             # 读写锁
             self.file_lock = threading.Lock()
@@ -157,8 +162,16 @@ class ConfigManager:
 
                 # 回调成功后写入配置，加密密码
                 server_to_save = server_data.copy()
+
+                # 处理密码：如果有新密码则加密，如果没有则保留原密码
                 if server_to_save.get('password'):
                     server_to_save['password'] = crypto_manager.encrypt_password(server_to_save['password'])
+                elif 'password' not in server_to_save and server.get('password'):
+                    server_to_save['password'] = server.get('password')
+
+                # 处理用户名：如果没有则保留原用户名
+                if 'username' not in server_to_save and server.get('username'):
+                    server_to_save['username'] = server.get('username')
 
                 servers[i] = server_to_save
                 config['Server'] = servers

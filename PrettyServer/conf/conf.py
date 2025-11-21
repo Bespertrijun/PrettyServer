@@ -1,5 +1,6 @@
 import yaml
 import os
+from pathlib import Path
 from util.exception import ConfigError
 
 def check_exist(dict, key, title):
@@ -9,9 +10,18 @@ def check_exist(dict, key, title):
     except:
         raise ConfigError(f'{title}缺失{key}: 请检查config.yaml文件')
 
-# Docker 分支: 配置和数据都在 /data 目录
-DATA_DIR = '/data'
-with open(os.path.join(DATA_DIR, 'config.yaml'), 'r', encoding='utf-8') as f:
+# 配置文件路径：优先使用 /data (Docker)，否则使用项目根目录 (开发环境)
+if os.path.exists('/data/config.yaml'):
+    CONFIG_FILE = '/data/config.yaml'
+    DATA_DIR = '/data'
+else:
+    # 开发环境：使用项目根目录
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent.parent.parent
+    CONFIG_FILE = str(project_root / 'config.yaml')
+    DATA_DIR = str(project_root / 'conf')
+
+with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
     data = yaml.load(stream=f, Loader=yaml.FullLoader)
     try:
         SERVER_LIST = check_exist(data ,'Server','conf') or []

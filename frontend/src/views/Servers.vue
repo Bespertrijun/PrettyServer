@@ -102,30 +102,32 @@
                                 :key="idx"
                                 class="scantask-library-row"
                               >
-                                <el-select
-                                  :model-value="libConfig.name ? libId : ''"
-                                  @update:model-value="(val: string) => updateScanLibraryId(props.row.name, libId as string, val)"
-                                  @click="loadLibrariesForSelect(props.row.name)"
-                                  :loading="loadingLibraries[props.row.name]"
-                                  placeholder="选择库"
-                                  size="small"
-                                  class="library-select"
-                                >
-                                  <el-option
-                                    v-for="lib in availableLibraries[props.row.name]"
-                                    :key="lib.id"
-                                    :label="lib.name"
-                                    :value="lib.id"
-                                    :disabled="isLibrarySelected(props.row.name, lib.id, libId as string)"
+                                <div class="library-inputs">
+                                  <el-select
+                                    :model-value="libConfig.name ? libId : ''"
+                                    @update:model-value="(val: string) => updateScanLibraryId(props.row.name, libId as string, val)"
+                                    @click="loadLibrariesForSelect(props.row.name)"
+                                    :loading="loadingLibraries[props.row.name]"
+                                    placeholder="选择库"
+                                    size="small"
+                                    class="library-select"
+                                  >
+                                    <el-option
+                                      v-for="lib in availableLibraries[props.row.name]"
+                                      :key="lib.id"
+                                      :label="lib.name"
+                                      :value="lib.id"
+                                      :disabled="isLibrarySelected(props.row.name, lib.id, libId as string)"
+                                    />
+                                  </el-select>
+                                  <el-input
+                                    v-model="libConfig.crontab"
+                                    size="small"
+                                    placeholder="输入Crontab表达式"
+                                    class="crontab-input"
+                                    required
                                   />
-                                </el-select>
-                                <el-input
-                                  v-model="libConfig.crontab"
-                                  size="small"
-                                  placeholder="输入Crontab表达式"
-                                  class="crontab-input"
-                                  required
-                                />
+                                </div>
                                 <el-button
                                   size="small"
                                   type="danger"
@@ -316,29 +318,31 @@
                             :key="idx"
                             class="scantask-library-row"
                           >
-                            <el-select
-                              :model-value="libConfig.name ? libId : ''"
-                              @update:model-value="(val: string) => updateScanLibraryId(server.name, libId as string, val)"
-                              @click="loadLibrariesForSelect(server.name)"
-                              :loading="loadingLibraries[server.name]"
-                              placeholder="选择库"
-                              size="small"
-                              class="library-select"
-                            >
-                              <el-option
-                                v-for="lib in availableLibraries[server.name]"
-                                :key="lib.id"
-                                :label="lib.name"
-                                :value="lib.id"
-                                :disabled="isLibrarySelected(server.name, lib.id, libId as string)"
+                            <div class="library-inputs">
+                              <el-select
+                                :model-value="libConfig.name ? libId : ''"
+                                @update:model-value="(val: string) => updateScanLibraryId(server.name, libId as string, val)"
+                                @click="loadLibrariesForSelect(server.name)"
+                                :loading="loadingLibraries[server.name]"
+                                placeholder="选择库"
+                                size="small"
+                                class="library-select"
+                              >
+                                <el-option
+                                  v-for="lib in availableLibraries[server.name]"
+                                  :key="lib.id"
+                                  :label="lib.name"
+                                  :value="lib.id"
+                                  :disabled="isLibrarySelected(server.name, lib.id, libId as string)"
+                                />
+                              </el-select>
+                              <el-input
+                                v-model="libConfig.crontab"
+                                size="small"
+                                placeholder="输入Crontab表达式"
+                                class="crontab-input"
                               />
-                            </el-select>
-                            <el-input
-                              v-model="libConfig.crontab"
-                              size="small"
-                              placeholder="输入Crontab表达式"
-                              class="crontab-input"
-                            />
+                            </div>
                             <el-button
                               size="small"
                               type="danger"
@@ -468,29 +472,31 @@
                       :key="idx"
                       class="scantask-library-row"
                     >
-                      <el-select
-                        :model-value="libConfig.name ? libId : ''"
-                        @update:model-value="(val: string) => updateScanLibraryId(newServer.name, libId as string, val)"
-                        @click="loadLibrariesForSelect(newServer.name)"
-                        :loading="loadingLibraries[newServer.name]"
-                        placeholder="选择库"
-                        size="small"
-                        class="library-select"
-                      >
-                        <el-option
-                          v-for="lib in availableLibraries[newServer.name]"
-                          :key="lib.id"
-                          :label="lib.name"
-                          :value="lib.id"
-                          :disabled="isLibrarySelected(newServer.name, lib.id, libId as string)"
+                      <div class="library-inputs">
+                        <el-select
+                          :model-value="libConfig.name ? libId : ''"
+                          @update:model-value="(val: string) => updateScanLibraryId(newServer.name, libId as string, val)"
+                          @click="loadLibrariesForSelect(newServer.name)"
+                          :loading="loadingLibraries[newServer.name]"
+                          placeholder="选择库"
+                          size="small"
+                          class="library-select"
+                        >
+                          <el-option
+                            v-for="lib in availableLibraries[newServer.name]"
+                            :key="lib.id"
+                            :label="lib.name"
+                            :value="lib.id"
+                            :disabled="isLibrarySelected(newServer.name, lib.id, libId as string)"
+                          />
+                        </el-select>
+                        <el-input
+                          v-model="libConfig.crontab"
+                          size="small"
+                          placeholder="输入Crontab表达式"
+                          class="crontab-input"
                         />
-                      </el-select>
-                      <el-input
-                        v-model="libConfig.crontab"
-                        size="small"
-                        placeholder="输入Crontab表达式"
-                        class="crontab-input"
-                      />
+                      </div>
                       <el-button
                         size="small"
                         type="danger"
@@ -784,7 +790,12 @@ const saveConfig = async (row: ServerInfo) => {
     // 组合完整的 URL
     formData.url = `${formData.protocol}://${formData.host}:${formData.port}`
 
-    // 加密密码（如果存在）
+    // 处理用户名：如果为空，删除字段保持原值
+    if (!formData.username) {
+      delete formData.username
+    }
+
+    // 加密密码（如果存在且不为空）
     if (formData.password) {
       try {
         formData.password = await encryptPassword(formData.password)
@@ -794,6 +805,9 @@ const saveConfig = async (row: ServerInfo) => {
         savingConfig.value[row.name] = false
         return
       }
+    } else {
+      // 如果密码为空，删除密码字段，保持原密码不变
+      delete formData.password
     }
 
     // 清理 scantask 中的空配置
@@ -1484,6 +1498,12 @@ watch(() => newServer.value.type, (newType) => {
   gap: 8px;
 }
 
+.library-inputs {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+
 .library-select {
   flex: 2;
   min-width: 120px;
@@ -1492,6 +1512,24 @@ watch(() => newServer.value.type, (newType) => {
 .crontab-input {
   flex: 1;
   min-width: 100px;
+}
+
+/* 移动端响应式布局 */
+@media (max-width: 768px) {
+  .library-inputs {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .library-select,
+  .crontab-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .scantask-library-row {
+    align-items: center;
+  }
 }
 
 /* scantask卡片宽度设置 */
