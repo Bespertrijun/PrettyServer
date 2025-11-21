@@ -157,10 +157,7 @@ class ConfigManager:
         # 查找服务器
         for i, server in enumerate(servers):
             if server.get('name') == name:
-                # 先触发运行时更新回调（失败会抛异常）
-                await self._trigger_callback(self._on_server_updated, name, server_data)
-
-                # 回调成功后写入配置，加密密码
+                # 准备用于写入配置和回调的数据
                 server_to_save = server_data.copy()
 
                 # 处理密码：如果有新密码则加密，如果没有则保留原密码
@@ -173,6 +170,10 @@ class ConfigManager:
                 if 'username' not in server_to_save and server.get('username'):
                     server_to_save['username'] = server.get('username')
 
+                # 触发运行时更新回调：传递包含完整凭据的数据（失败会抛异常）
+                await self._trigger_callback(self._on_server_updated, name, server_to_save)
+
+                # 回调成功后写入配置
                 servers[i] = server_to_save
                 config['Server'] = servers
                 self._write_config(config)

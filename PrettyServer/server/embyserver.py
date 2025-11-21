@@ -98,6 +98,7 @@ class Embyserver(Util):
     async def close(self):
         if hasattr(self,"session"):
             await self.session.close()
+
     @require_login
     async def test_connection(self, timeout: float = 5.0) -> bool:
         """测试服务器连接是否正常

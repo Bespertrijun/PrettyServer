@@ -457,14 +457,19 @@
                 <!-- scantask显示库列表配置 -->
                 <template v-if="taskName === 'scantask'">
                   <div class="scantask-header">
-                    <el-button
-                      size="small"
-                      type="primary"
-                      :icon="Plus"
-                      @click="addScanLibrary(newServer.name)"
+                    <el-tooltip
+                      content="请先保存服务器后再配置库扫描"
+                      placement="top"
                     >
-                      添加库扫描配置
-                    </el-button>
+                      <el-button
+                        size="small"
+                        type="primary"
+                        :icon="Plus"
+                        disabled
+                      >
+                        添加库扫描配置
+                      </el-button>
+                    </el-tooltip>
                   </div>
                   <div class="scantask-libraries">
                     <div

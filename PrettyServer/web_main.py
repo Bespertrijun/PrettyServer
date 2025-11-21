@@ -7,7 +7,6 @@ import uvicorn
 import warnings
 import traceback
 import aiohttp
-import logging
 import os
 import bcrypt
 from datetime import datetime
