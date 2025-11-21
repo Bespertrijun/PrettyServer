@@ -682,6 +682,14 @@ async def update_server_config(server_name: str, server_data: Dict[str, Any]):
             if CM.get_server_by_name(new_name):
                 raise HTTPException(status_code=400, detail=f"服务器名称 '{new_name}' 已存在")
 
+        # 解密前端发送的 ECC 加密密码
+        if server_data.get('password'):
+            try:
+                server_data['password'] = crypto_manager.decrypt_password(server_data['password'])
+            except Exception as e:
+                log.error(f"解密服务器密码失败: {e}")
+                raise HTTPException(status_code=400, detail="密码格式错误")
+
         success = await CM.update_server(server_name, server_data)
         if not success:
             raise HTTPException(status_code=500, detail="更新服务器配置失败")
@@ -700,6 +708,14 @@ async def add_server_config(server_data: Dict[str, Any]):
         # 检查名称是否已存在
         if CM.get_server_by_name(server_data.get('name')):
             raise HTTPException(status_code=400, detail="服务器名称已存在")
+
+        # 解密前端发送的 ECC 加密密码
+        if server_data.get('password'):
+            try:
+                server_data['password'] = crypto_manager.decrypt_password(server_data['password'])
+            except Exception as e:
+                log.error(f"解密服务器密码失败: {e}")
+                raise HTTPException(status_code=400, detail="密码格式错误")
 
         await CM.add_server(server_data)
         return {"status": "success", "message": "服务器已添加"}
