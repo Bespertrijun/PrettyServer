@@ -118,8 +118,14 @@ class Util():
             if self._server.userid:
                 path_url = f'/Users/{self._server.userid}/Items/{ekey}'
             else:
-                path_url = f'/Items/{ekey}'
+                payload = {
+                    'Ids':ekey,
+                    "Fields":"OriginalTitle,Etag,DateCreated,CanDelete,CanDownload,PresentationUniqueKey,SupportsSync,SortName,ForcedSortName,PremiereDate,ExternalUrls,Path,Overview,Taglines,Genres,FileName,ProductionYear,RemoteTrailers,ProviderIds,ParentId,People,Studios,GenreItems,TagItems,LocalTrailerCount,ChildCount,DisplayPreferencesId,Status,PrimaryImageAspectRatio,DisplayOrder,LockedFields,LockData"
+                }
+                path_url = self.bulidurl("/Items",payload)
         data = await self._server.query(path_url,msg='请求失败，请检查网络或ekey')
+        if not self._server.userid:
+            data = data['Items'][0 ]
         return data
 
     async def query(self, path, method=None, headers=None, data=None, json=None,msg:str=None):
