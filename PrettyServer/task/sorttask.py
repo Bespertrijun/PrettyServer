@@ -1,5 +1,7 @@
 import asyncio
 import traceback
+
+from attr import has
 from server.jellyfinserver import Jellyfinserver
 from server.plexserver import Plexserver
 from server.embyserver import Embyserver
@@ -57,8 +59,9 @@ class SortTask(ST):
                         media.data["OriginalTitle"] = final
                         media.data["ForcedSortName"] = titlevalue[0] if titlevalue[0].isdigit() else titlevalue
                         media.data["SortName"] = titlevalue[0] if titlevalue[0].isdigit() else titlevalue
-                        media.data["LockedFields"].append("OriginalTitle") if  media.data["LockedFields"].count("OriginalTitle") == 0 else None
-                        media.data["LockedFields"].append("SortName") if  media.data["LockedFields"].count("SortName") == 0 else None
+                        if hasattr(media,"LockedFields"):
+                            media.data["LockedFields"].append("OriginalTitle") if  media.data["LockedFields"].count("OriginalTitle") == 0 else None
+                            media.data["LockedFields"].append("SortName") if  media.data["LockedFields"].count("SortName") == 0 else None
                         log.info(f'{media.Name}: 改变标题排序为 {titlevalue}')
                         await media.edit(media.data)
                     else:
