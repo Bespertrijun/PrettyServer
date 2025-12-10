@@ -38,11 +38,16 @@ async def on_server_added_callback(server_name: str, server_data: dict):
         log.error(f"无法创建服务器实例: {server_name}")
         raise Exception(f"无法创建服务器实例: {server_name}")
 
-    # 使用辅助函数初始化服务器任务和属性
-    initialize_server_tasks(server, server_data, g.TMDB_SESSION, g.SEM)
-
     # 添加到全局服务器列表
     g.SERVERS.append(server)
+
+    # 检查服务器状态，只为正常运行的服务器初始化任务
+    if getattr(server, 'status', None) != 'running':
+        log.warning(f"服务器 {server_name} 状态异常: {getattr(server, 'error_msg', '未知错误')}，跳过任务初始化")
+        return
+
+    # 使用辅助函数初始化服务器任务和属性
+    initialize_server_tasks(server, server_data, g.TMDB_SESSION, g.SEM)
 
     # 初始化服务器任务
     await init_server_task(server, g.SCHEDULER)
@@ -73,10 +78,14 @@ async def on_server_updated_callback(server_name: str, server_data: dict):
             log.error(f"无法创建新服务器实例: {server_data.get('name')}")
             raise Exception(f"无法创建新服务器实例: {server_data.get('name')}")
 
-        # 3. 初始化新服务器的任务和属性
-        initialize_server_tasks(new_server, server_data, g.TMDB_SESSION, g.SEM)
+        # 3. 检查新服务器状态，状态异常则拒绝更新，保持旧服务器不变
+        if new_server.status != 'running':
+            error_msg = getattr(new_server, 'error_msg', '未知错误')
+            log.error(f"新服务器 {server_data.get('name')} 状态异常: {error_msg}，拒绝更新")
+            await new_server.close()  # 关闭创建的异常连接
+            raise Exception(f"新服务器连接失败: {error_msg}")
 
-        # 4. 新服务器创建成功后，再清理旧服务器
+        # 4. 新服务器状态正常后，再清理旧服务器
         # 移除旧服务器的所有任务
         task_attrs = ['roletask', 'sorttask', 'scantask', 'mergetask', 'titletask']
         old_server_tasks = []

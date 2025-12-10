@@ -62,6 +62,8 @@ class SortTask(ST):
                         if hasattr(media,"LockedFields"):
                             media.data["LockedFields"].append("OriginalTitle") if  media.data["LockedFields"].count("OriginalTitle") == 0 else None
                             media.data["LockedFields"].append("SortName") if  media.data["LockedFields"].count("SortName") == 0 else None
+                        else:
+                            media.data["LockedFields"] = ["OriginalTitle","SortName"]
                         log.info(f'{media.Name}: 改变标题排序为 {titlevalue}')
                         await media.edit(media.data)
                     else:
