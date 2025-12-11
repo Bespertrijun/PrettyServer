@@ -1,19 +1,19 @@
 # ==================== 阶段1: 构建前端 ====================
-FROM --platform=$TARGETPLATFORM node:20-slim AS frontend-builder
+# FROM --platform=$TARGETPLATFORM node:22-alpine AS frontend-builder
 
-WORKDIR /frontend
+# WORKDIR /frontend
 
-# 复制前端依赖文件
-COPY frontend/package*.json ./
+# # 复制前端依赖文件
+# COPY frontend/package*.json ./
 
-# 安装依赖
-RUN npm ci
+# # 安装依赖
+# RUN npm ci
 
-# 复制前端源码
-COPY frontend/ ./
+# # 复制前端源码
+# COPY frontend/ ./
 
-# 构建前端
-RUN npm run build-only
+# # 构建前端
+# RUN npm run build-only
 
 # ==================== 阶段2: 构建后端 ====================
 FROM --platform=$TARGETPLATFORM python:3.11-slim-bookworm
