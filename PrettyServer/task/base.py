@@ -71,7 +71,7 @@ class SortTask(BaseTask):
 
 class TitleTask(BaseTask):
     """
-        季标题任务基本类
+        标题任务基本类（电影标题、剧集标题、季标题）
     """
     def __init__(self, mediaserver, task_info: dict) -> None:
         super().__init__(mediaserver,task_info)
@@ -79,6 +79,12 @@ class TitleTask(BaseTask):
 
     def _loadinfo(self):
         self.crontab = check_exist(self._info, "crontab", list(self._info.keys())[0])
+        # 是否修改电影标题，默认 False
+        self.movie_title = self._info.get("movie_title", False)
+        # 是否修改剧集标题，默认 False
+        self.show_title = self._info.get("show_title", False)
+        # 是否修改季标题，默认 False
+        self.season_title = self._info.get("season_title", False)
 
 class ScanTask(BaseTask):
     """

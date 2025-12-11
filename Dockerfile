@@ -1,4 +1,23 @@
+# ==================== 阶段1: 构建前端 ====================
+FROM --platform=$TARGETPLATFORM node:20-slim AS frontend-builder
+
+WORKDIR /frontend
+
+# 复制前端依赖文件
+COPY frontend/package*.json ./
+
+# 安装依赖
+RUN npm ci
+
+# 复制前端源码
+COPY frontend/ ./
+
+# 构建前端
+RUN npm run build-only
+
+# ==================== 阶段2: 构建后端 ====================
 FROM --platform=$TARGETPLATFORM python:3.11-slim-bookworm
+
 ENV TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -57,6 +76,9 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 
 # 复制应用代码
 COPY . /app
+
+# 从前端构建阶段复制构建产物
+COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 
 # 创建入口脚本
 RUN echo '#!/bin/bash\n\

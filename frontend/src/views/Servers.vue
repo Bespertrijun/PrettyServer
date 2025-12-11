@@ -84,6 +84,19 @@
                             <el-input v-model="taskConfig.crontab" size="small" />
                           </el-form-item>
 
+                          <!-- titletask 显示三个标题修正开关 -->
+                          <template v-if="taskName === 'titletask'">
+                            <el-form-item label="电影标题">
+                              <el-switch v-model="taskConfig.movie_title" />
+                            </el-form-item>
+                            <el-form-item label="剧集标题">
+                              <el-switch v-model="taskConfig.show_title" />
+                            </el-form-item>
+                            <el-form-item label="季标题">
+                              <el-switch v-model="taskConfig.season_title" />
+                            </el-form-item>
+                          </template>
+
                           <!-- scantask显示库列表配置 -->
                            <template v-if="taskName === 'scantask'">
                             <div class="scantask-header">
@@ -300,6 +313,19 @@
                         <el-input v-model="taskConfig.crontab" size="small" />
                       </el-form-item>
 
+                      <!-- titletask 显示三个标题修正开关 -->
+                      <template v-if="taskName === 'titletask'">
+                        <el-form-item label="电影标题">
+                          <el-switch v-model="taskConfig.movie_title" />
+                        </el-form-item>
+                        <el-form-item label="剧集标题">
+                          <el-switch v-model="taskConfig.show_title" />
+                        </el-form-item>
+                        <el-form-item label="季标题">
+                          <el-switch v-model="taskConfig.season_title" />
+                        </el-form-item>
+                      </template>
+
                       <!-- scantask显示库列表配置 -->
                       <template v-if="taskName === 'scantask'">
                         <div class="scantask-header">
@@ -453,6 +479,19 @@
                 <el-form-item v-if="taskName !== 'scantask'" label="Crontab">
                   <el-input v-model="taskConfig.crontab" size="small" placeholder="如: 0 0 * * *" />
                 </el-form-item>
+
+                <!-- titletask 显示三个标题修正开关 -->
+                <template v-if="taskName === 'titletask'">
+                  <el-form-item label="电影标题">
+                    <el-switch v-model="taskConfig.movie_title" />
+                  </el-form-item>
+                  <el-form-item label="剧集标题">
+                    <el-switch v-model="taskConfig.show_title" />
+                  </el-form-item>
+                  <el-form-item label="季标题">
+                    <el-switch v-model="taskConfig.season_title" />
+                  </el-form-item>
+                </template>
 
                 <!-- scantask显示库列表配置 -->
                 <template v-if="taskName === 'scantask'">
@@ -873,7 +912,7 @@ const formatTaskName = (taskName: string): string => {
     'sorttask': '标题排序',
     'scantask': '库扫描',
     'mergetask': '电影合并',
-    'titletask': '季度标题'
+    'titletask': '标题修正'
   }
   return taskNameMap[taskName] || taskName
 }
@@ -911,6 +950,13 @@ const generateDefaultTasks = (serverType: string): Partial<ServerConfig> => {
       tasks[taskName] = {
         ...defaultTaskConfig,
         library: {}
+      }
+    } else if (taskName === 'titletask') {
+      tasks[taskName] = {
+        ...defaultTaskConfig,
+        movie_title: false,
+        show_title: false,
+        season_title: false
       }
     } else {
       tasks[taskName] = { ...defaultTaskConfig }

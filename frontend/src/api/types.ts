@@ -9,6 +9,10 @@ export interface TaskConfig {
   run: boolean
   crontab?: string
   library?: Record<string, LibraryConfig>  // scantask 专用的库配置，格式: { "库id": { name: "库名", crontab: "表达式" } }
+  // titletask 专用配置
+  movie_title?: boolean   // 是否修改电影标题
+  show_title?: boolean    // 是否修改剧集标题
+  season_title?: boolean  // 是否修改季标题
 }
 
 // 服务器配置（对应 config.yaml 中的完整服务器配置）

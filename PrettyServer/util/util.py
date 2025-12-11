@@ -272,6 +272,44 @@ class Util():
             else:
                 raise FailRequest("获取季标题失败")
 
+    async def movie_title(self, tmdbid):
+        """获取电影的中文标题"""
+        path = f"https://api.themoviedb.org/3/movie/{tmdbid}/translations?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
+            if res.status == 200:
+                respond = await res.json()
+                for trans in respond.get("translations", []):
+                    if trans.get("iso_3166_1") == "CN":
+                        if trans["data"].get("title"):
+                            return trans["data"].get("title")
+                        else:
+                            return None
+                return None
+            elif res.status == 404:
+                raise FailRequest("电影TMDBID不存在")
+            else:
+                raise FailRequest("获取电影中文标题失败")
+
+    async def show_title(self, tmdbid):
+        """获取剧集的中文标题"""
+        path = f"https://api.themoviedb.org/3/tv/{tmdbid}/translations?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
+            if res.status == 200:
+                respond = await res.json()
+                for trans in respond.get("translations", []):
+                    if trans.get("iso_3166_1") == "CN":
+                        if trans["data"].get("name"):
+                            return trans["data"].get("name")
+                        else:
+                            return None
+                return None
+            elif res.status == 404:
+                raise FailRequest("剧集TMDBID不存在")
+            else:
+                raise FailRequest("获取剧集中文标题失败")
+
     async def get_role_from_id(self,type,tmdbid):
         """
             type: movie for movie, tv for tv
