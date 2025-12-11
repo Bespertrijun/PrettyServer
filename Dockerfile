@@ -78,7 +78,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 COPY . /app
 
 # 从前端构建阶段复制构建产物
-COPY --from=frontend-builder /frontend/dist /app/frontend/dist
+# COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 
 # 创建入口脚本
 RUN echo '#!/bin/bash\n\
