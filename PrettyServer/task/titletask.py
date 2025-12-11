@@ -10,24 +10,25 @@ class TitleTask(TT):
         super().__init__(mediaserver, task_info)
 
     async def _emby_season_title(self,media):
-        try:
-            if not media.tmdbid:
-                log.warning(f"{self.server.type.capitalize()}: {media.Name} 没有tmdbid，无法搜索季标题，跳过")
-                return
-            for se in await media.seasons():
-                title = await media.season_title(media.tmdbid,se.IndexNumber)
-                if title:
-                    if se.Name == title:
-                        log.info(f'{self.server.type.capitalize()}: {media.Name}: 季{se.IndexNumber} 已存在标题{title}')
-                        continue
-                    await se.fetchitem()
-                    se.data["Name"] = title
-                    log.info(f'{self.server.type.capitalize()}: {media.Name}: 改变季{se.IndexNumber}标题为 {title}')
-                    await se.edit(se.data)
-                else:
-                    log.info(f'{self.server.type.capitalize()}: {media.Name}: 季{se.IndexNumber}没有找到相关数据')
-        except:
-            log.critical(f'{self.server.type.capitalize()}修正季标题任务任务失败 {media.Name}：{traceback.format_exc()}')
+        async with self.server.sem:
+            try:
+                if not media.tmdbid:
+                    log.warning(f"{self.server.type.capitalize()}: {media.Name} 没有tmdbid，无法搜索季标题，跳过")
+                    return
+                for se in await media.seasons():
+                    title = await media.season_title(media.tmdbid,se.IndexNumber)
+                    if title:
+                        if se.Name == title:
+                            log.info(f'{self.server.type.capitalize()}: {media.Name}: 季{se.IndexNumber} 已存在标题{title}')
+                            continue
+                        await se.fetchitem()
+                        se.data["Name"] = title
+                        log.info(f'{self.server.type.capitalize()}: {media.Name}: 改变季{se.IndexNumber}标题为 {title}')
+                        await se.edit(se.data)
+                    else:
+                        log.info(f'{self.server.type.capitalize()}: {media.Name}: 季{se.IndexNumber}没有找到相关数据')
+            except:
+                log.critical(f'{self.server.type.capitalize()}修正季标题任务任务失败 {media.Name}：{traceback.format_exc()}')
 
     async def run(self):
         log.info(f"{self.server.type.capitalize()}({self.server.name})：开始进行修正季标题任务...")

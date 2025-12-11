@@ -8,28 +8,29 @@ class EmbyRoleTask(RoleTask):
         super().__init__(mediaserver, task_info)
 
     async def _emby_role(self,p):
-        try:
-            if p.check_chs(p.Name):
-                log.info(f'{p.Name}：已有中文信息')
-                return
-            if p.ProviderIds:
-                if p.tmdbid:
-                    data = await self.server.get_chs_name(p.tmdbid)
-                    if data['chs']:
-                        await p.fetchitem()
-                        p.data["Name"] = data['chs']
-                        await p.edit(p.data)
-                        log.info(f'{p.Name}：修改为{data["chs"]}')
+        async with self.server.sem:
+            try:
+                if p.check_chs(p.Name):
+                    log.info(f'{p.Name}：已有中文信息')
+                    return
+                if p.ProviderIds:
+                    if p.tmdbid:
+                        data = await self.server.get_chs_name(p.tmdbid)
+                        if data['chs']:
+                            await p.fetchitem()
+                            p.data["Name"] = data['chs']
+                            await p.edit(p.data)
+                            log.info(f'{p.Name}：修改为{data["chs"]}')
+                        else:
+                            log.info(f'{p.Name}：tmdb没有中文信息')
                     else:
-                        log.info(f'{p.Name}：tmdb没有中文信息')
+                        log.warning(f'{p.Name}：没有Tmdbid信息')
                 else:
-                    log.warning(f'{p.Name}：没有Tmdbid信息')
-            else:
-                log.warning(f'{p.Name}：没有ProviderIds信息')
-        except (asyncio.CancelledError, KeyboardInterrupt):
-            pass
-        except:
-            log.critical(f'{p.Name}修改中文名失败：{traceback.format_exc()}')
+                    log.warning(f'{p.Name}：没有ProviderIds信息')
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                pass
+            except:
+                log.critical(f'{p.Name}修改中文名失败：{traceback.format_exc()}')
 
     async def run(self):
         log.info(f"{self.server.type.title()}({self.server.name})：开始进行演员中文化...")

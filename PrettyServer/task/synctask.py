@@ -261,125 +261,76 @@ class SyncTask(ST):
 
     async def _cronsync(self,server1,server2,media,sync_type,reverse:bool=False):
         #media_type:emby,jellyfin,plex:string
-        media_type = None
-        try:
-            if isinstance(media,(emby.Episode,jellyfin.Episode,plex.Episode)):
-                server1_media = await media.GetShow()
-                server2_medias = await server2.guidsearch(tmdb=server1_media.tmdbid,imdb=server1_media.imdbid,tvdb=server1_media.tvdbid)
-                media_type = 'ep'
-            elif isinstance(media,(emby.Movie,jellyfin.Movie,plex.Movie)):
-                if server1.type == 'plex':
-                    await media.fetchitem()
-                server2_medias = await server2.guidsearch(tmdb=media.tmdbid,imdb=media.imdbid,tvdb=media.tvdbid)
-                media_type = 'movie'
-            server1_name = f'{server1.type.title()}({server1.name})'
-            server2_name = f'{server2.type.title()}({server2.name})'
-            if sync_type == 0:
-                media_played = media.Played
-                media_playing = media.PlaybackPositionTicks if media.PlaybackPositionTicks != 0 else None
-                if media_type == 'movie':
-                    name = media.Name
-                else:
-                    name = server1_media.Name
-            elif sync_type == 1:
-                if server1.type == 'plex':
-                    media_playing = media.viewOffset
-                    media_played = media.viewedAt
-                    if media_type == 'movie':
-                        name = media.title
-                    else:
-                        name = server1_media.title
-                else:
+        async with server1.sem:
+            media_type = None
+            try:
+                if isinstance(media,(emby.Episode,jellyfin.Episode,plex.Episode)):
+                    server1_media = await media.GetShow()
+                    server2_medias = await server2.guidsearch(tmdb=server1_media.tmdbid,imdb=server1_media.imdbid,tvdb=server1_media.tvdbid)
+                    media_type = 'ep'
+                elif isinstance(media,(emby.Movie,jellyfin.Movie,plex.Movie)):
+                    if server1.type == 'plex':
+                        await media.fetchitem()
+                    server2_medias = await server2.guidsearch(tmdb=media.tmdbid,imdb=media.imdbid,tvdb=media.tvdbid)
+                    media_type = 'movie'
+                server1_name = f'{server1.type.title()}({server1.name})'
+                server2_name = f'{server2.type.title()}({server2.name})'
+                if sync_type == 0:
                     media_played = media.Played
                     media_playing = media.PlaybackPositionTicks if media.PlaybackPositionTicks != 0 else None
                     if media_type == 'movie':
                         name = media.Name
                     else:
                         name = server1_media.Name
-            elif sync_type == 2:
-                media_playing = media.viewOffset
-                media_played = media.viewedAt
-                if media_type == 'movie':
-                    name = media.title
-                else:
-                    name = server1_media.title
-            match_medias = []
-            if server2_medias:
-                for match_media in server2_medias:
-                    await asyncio.sleep(1)
-                    if media_type == None:
-                        raise
-                    elif media_type == 'movie':
-                        if isinstance(match_media,(emby.Movie,jellyfin.Movie,plex.Movie)):
-                            match_medias.append(match_media)
-                    elif media_type == 'ep':
-                        if isinstance(match_media,(emby.Show,jellyfin.Show,plex.Show)):
-                            match_medias.append(match_media)
-            if match_medias:
-                for match_media in match_medias:
-                    if media_type == None:
-                        raise
-                    elif media_type == 'movie':
-                        if media_played:
-                            await match_media.watched()
-                            await match_media.reload()
-                            async with self.lock:
-                                if sync_type == 0:
-                                    match_playdate = match_media.LastPlayedDate
-                                    playdate = media.LastPlayedDate
-                                elif sync_type == 1:
-                                    if server1.type == 'plex':
-                                        match_playdate = match_media.LastPlayedDate
-                                        playdate = media.viewedAt
-                                    else:
-                                        match_playdate = match_media.lastViewedAt
-                                        playdate = media.LastPlayedDate
-                                elif sync_type == 2:
-                                    match_playdate = match_media.lastViewedAt
-                                    playdate = media.viewedAt
-                                self.renew_date(playdate,match_playdate,'played',reverse)
-                            log.info(f'{server2_name}服务器已观看：{name}')
-                        elif media_playing:
-                            await match_media.timeline(media.convertTime(media_playing,sync_type))
-                            await match_media.reload()
-                            async with self.lock:
-                                if sync_type == 0:
-                                    match_playingdate = match_media.LastPlayedDate
-                                    playingdate = media.LastPlayedDate
-                                elif sync_type == 1:
-                                    if server1.type == 'plex':
-                                        match_playingdate = match_media.LastPlayedDate
-                                        playingdate = media.lastViewedAt
-                                    else:
-                                        match_playingdate = match_media.lastViewedAt
-                                        playingdate = media.LastPlayedDate
-                                elif sync_type == 2:
-                                    match_playingdate = match_media.viewedAt
-                                    playingdate = media.lastViewedAt
-                                self.renew_date(playingdate,match_playingdate,'playing',reverse)
-                            log.info(f'{server2_name}服务器已同步进度：{name}')
-                    elif media_type == 'ep':
-                        if server1.type == 'plex':
-                            se_num = media.parentIndex
-                            ep_num = media.index
+                elif sync_type == 1:
+                    if server1.type == 'plex':
+                        media_playing = media.viewOffset
+                        media_played = media.viewedAt
+                        if media_type == 'movie':
+                            name = media.title
                         else:
-                            se_num = media.ParentIndexNumber
-                            ep_num = media.IndexNumber
-                        server2_ep = await match_media.episode(se_num,ep_num)
-                        if server2_ep:
+                            name = server1_media.title
+                    else:
+                        media_played = media.Played
+                        media_playing = media.PlaybackPositionTicks if media.PlaybackPositionTicks != 0 else None
+                        if media_type == 'movie':
+                            name = media.Name
+                        else:
+                            name = server1_media.Name
+                elif sync_type == 2:
+                    media_playing = media.viewOffset
+                    media_played = media.viewedAt
+                    if media_type == 'movie':
+                        name = media.title
+                    else:
+                        name = server1_media.title
+                match_medias = []
+                if server2_medias:
+                    for match_media in server2_medias:
+                        await asyncio.sleep(1)
+                        if media_type == None:
+                            raise
+                        elif media_type == 'movie':
+                            if isinstance(match_media,(emby.Movie,jellyfin.Movie,plex.Movie)):
+                                match_medias.append(match_media)
+                        elif media_type == 'ep':
+                            if isinstance(match_media,(emby.Show,jellyfin.Show,plex.Show)):
+                                match_medias.append(match_media)
+                if match_medias:
+                    for match_media in match_medias:
+                        if media_type == None:
+                            raise
+                        elif media_type == 'movie':
                             if media_played:
-                                await server2_ep.watched()
-                                if server2.type == 'plex':
-                                    await match_media.reload()
-                                else:
-                                    await server2_ep.reload()
+                                await match_media.watched()
+                                await match_media.reload()
                                 async with self.lock:
                                     if sync_type == 0:
-                                        match_playdate = server2_ep.LastPlayedDate
+                                        match_playdate = match_media.LastPlayedDate
                                         playdate = media.LastPlayedDate
                                     elif sync_type == 1:
                                         if server1.type == 'plex':
-                                            match_playdate = server2_ep.LastPlayedDate
+                                            match_playdate = match_media.LastPlayedDate
                                             playdate = media.viewedAt
                                         else:
                                             match_playdate = match_media.lastViewedAt
@@ -388,37 +339,87 @@ class SyncTask(ST):
                                         match_playdate = match_media.lastViewedAt
                                         playdate = media.viewedAt
                                     self.renew_date(playdate,match_playdate,'played',reverse)
-                                log.info(f'{name}.{media.pretty_ep_out()}：{server2_name}已观看') 
+                                log.info(f'{server2_name}服务器已观看：{name}')
                             elif media_playing:
-                                await server2_ep.timeline(media.convertTime(media_playing,sync_type))
-                                if server2.type == 'plex':
-                                    await match_media.reload()
-                                else:
-                                    await server2_ep.reload()
+                                await match_media.timeline(media.convertTime(media_playing,sync_type))
+                                await match_media.reload()
                                 async with self.lock:
                                     if sync_type == 0:
-                                        match_playingdate = server2_ep.LastPlayedDate
+                                        match_playingdate = match_media.LastPlayedDate
                                         playingdate = media.LastPlayedDate
                                     elif sync_type == 1:
                                         if server1.type == 'plex':
-                                            match_playingdate = server2_ep.LastPlayedDate
+                                            match_playingdate = match_media.LastPlayedDate
                                             playingdate = media.lastViewedAt
                                         else:
                                             match_playingdate = match_media.lastViewedAt
                                             playingdate = media.LastPlayedDate
                                     elif sync_type == 2:
-                                        match_playingdate = match_media.lastViewedAt
+                                        match_playingdate = match_media.viewedAt
                                         playingdate = media.lastViewedAt
                                     self.renew_date(playingdate,match_playingdate,'playing',reverse)
-                                log.info(f'{name}.{media.pretty_ep_out()}：{server2_name}已同步进度') 
-                        else:
-                            log.warning(f'{server1_media.Name}.{media.pretty_ep_out()}：无该集')
-            else:
-                log.warning(f'{name}：{server2_name}无该影视')
-        except (asyncio.CancelledError, KeyboardInterrupt):
-            pass
-        except:
-            log.critical(f'{server1_name}同步{server2_name}播放进度失败{name} ：\n {traceback.format_exc()}')     
+                                log.info(f'{server2_name}服务器已同步进度：{name}')
+                        elif media_type == 'ep':
+                            if server1.type == 'plex':
+                                se_num = media.parentIndex
+                                ep_num = media.index
+                            else:
+                                se_num = media.ParentIndexNumber
+                                ep_num = media.IndexNumber
+                            server2_ep = await match_media.episode(se_num,ep_num)
+                            if server2_ep:
+                                if media_played:
+                                    await server2_ep.watched()
+                                    if server2.type == 'plex':
+                                        await match_media.reload()
+                                    else:
+                                        await server2_ep.reload()
+                                    async with self.lock:
+                                        if sync_type == 0:
+                                            match_playdate = server2_ep.LastPlayedDate
+                                            playdate = media.LastPlayedDate
+                                        elif sync_type == 1:
+                                            if server1.type == 'plex':
+                                                match_playdate = server2_ep.LastPlayedDate
+                                                playdate = media.viewedAt
+                                            else:
+                                                match_playdate = match_media.lastViewedAt
+                                                playdate = media.LastPlayedDate
+                                        elif sync_type == 2:
+                                            match_playdate = match_media.lastViewedAt
+                                            playdate = media.viewedAt
+                                        self.renew_date(playdate,match_playdate,'played',reverse)
+                                    log.info(f'{name}.{media.pretty_ep_out()}：{server2_name}已观看')
+                                elif media_playing:
+                                    await server2_ep.timeline(media.convertTime(media_playing,sync_type))
+                                    if server2.type == 'plex':
+                                        await match_media.reload()
+                                    else:
+                                        await server2_ep.reload()
+                                    async with self.lock:
+                                        if sync_type == 0:
+                                            match_playingdate = server2_ep.LastPlayedDate
+                                            playingdate = media.LastPlayedDate
+                                        elif sync_type == 1:
+                                            if server1.type == 'plex':
+                                                match_playingdate = server2_ep.LastPlayedDate
+                                                playingdate = media.lastViewedAt
+                                            else:
+                                                match_playingdate = match_media.lastViewedAt
+                                                playingdate = media.LastPlayedDate
+                                        elif sync_type == 2:
+                                            match_playingdate = match_media.lastViewedAt
+                                            playingdate = media.lastViewedAt
+                                        self.renew_date(playingdate,match_playingdate,'playing',reverse)
+                                    log.info(f'{name}.{media.pretty_ep_out()}：{server2_name}已同步进度')
+                            else:
+                                log.warning(f'{server1_media.Name}.{media.pretty_ep_out()}：无该集')
+                else:
+                    log.warning(f'{name}：{server2_name}无该影视')
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                pass
+            except:
+                log.critical(f'{server1_name}同步{server2_name}播放进度失败{name} ：\n {traceback.format_exc()}')     
 
     async def cronsync(self):
         try:

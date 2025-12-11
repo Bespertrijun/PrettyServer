@@ -12,17 +12,18 @@ class ScanTask(ST):
         super().__init__(mediaserver, task_info)
 
     async def _scan(self,section):
-        try:
-            if isinstance(self.server,Plexserver):
-                name = section.title
-            elif isinstance(self.server,(Embyserver,Jellyfinserver)):
-                name = section.Name
-            log.info(f"{name}：开始扫描媒体库")
-            await section.refresh()
-        except (asyncio.CancelledError, KeyboardInterrupt):
-                pass
-        except:
-            log.error(f'{name}扫描媒体库失败：{traceback.format_exc()}')
+        async with self.server.sem:
+            try:
+                if isinstance(self.server,Plexserver):
+                    name = section.title
+                elif isinstance(self.server,(Embyserver,Jellyfinserver)):
+                    name = section.Name
+                log.info(f"{name}：开始扫描媒体库")
+                await section.refresh()
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                    pass
+            except:
+                log.error(f'{name}扫描媒体库失败：{traceback.format_exc()}')
     
     async def run(self,scheduler):
         log.info(f"{self.server.type.capitalize()}({self.server.name})：开始初始化定时刷新媒体库任务...")

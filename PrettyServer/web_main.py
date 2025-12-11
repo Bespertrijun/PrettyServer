@@ -111,7 +111,10 @@ async def on_server_updated_callback(server_name: str, server_data: dict):
         # 7. 添加新服务器到全局列表
         g.SERVERS.append(new_server)
 
-        # 8. 初始化新服务器的任务
+        # 8. 初始化新服务器的任务属性（roletask, sorttask 等）
+        initialize_server_tasks(new_server, server_data, g.TMDB_SESSION, g.SEM)
+
+        # 9. 将任务添加到调度器
         await init_server_task(new_server, g.SCHEDULER)
 
         log.info(f"服务器 {server_data.get('name')} 已更新并重新初始化")
@@ -277,6 +280,9 @@ async def on_env_updated_callback(env_data: dict):
             new_concurrent_num = env_data['concurrent_num']
             if new_concurrent_num != g.SEM._value:
                 g.SEM = asyncio.Semaphore(new_concurrent_num)
+                # 同步更新所有服务器的 sem 引用
+                for server in g.SERVERS:
+                    server.sem = g.SEM
                 log.info(f"已更新并发数: {new_concurrent_num}")
 
         # 更新代理配置
