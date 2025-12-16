@@ -46,6 +46,38 @@ class Util():
                 return False
         return True
 
+    def has_chinese_no_japanese(self, str):
+        """
+        判断字符串是否包含中文且不包含日文
+
+        Args:
+            str: 待检测的字符串
+
+        Returns:
+            bool: 包含中文且不含日文假名返回 True，否则返回 False
+
+        说明:
+            - 中文字符范围: CJK 统一汉字 U+4E00-U+9FFF
+            - 日文平假名范围: U+3040-U+309F
+            - 日文片假名范围: U+30A0-U+30FF
+            - 半角片假名范围: U+FF65-U+FF9F
+            - 严格模式: 只要包含任何日文假名就返回 False
+        """
+        has_chinese = False
+
+        for ch in str:
+            # 检测日文假名（平假名、片假名、半角片假名）
+            if ('\u3040' <= ch <= '\u309f' or  # 平假名
+                '\u30a0' <= ch <= '\u30ff' or  # 片假名
+                '\uff65' <= ch <= '\uff9f'):   # 半角片假名
+                return False
+
+            # 检测中文字符
+            if '\u4e00' <= ch <= '\u9fff':
+                has_chinese = True
+
+        return has_chinese
+
     def checkchs(self,name):
         chs_list = []
         chs = ''
@@ -255,60 +287,163 @@ class Util():
                 raise FailRequest("获取演员中文名失败")
         return {'chs':data[respond['name']]['chs']}
     
-    async def season_title(self,series_id,season_number):
-        path = f"https://api.tmdb.org/3/tv/{series_id}/season/{season_number}/translations?api_key={TMDB_API}"
-        proxy = PROXY if ISPROXY else None
-        async with self._server.tmdb_session.get(path,proxy=proxy) as res:
-            if res.status == 200:
-                respond =  await res.json()
-                for trans in respond.get("translations"):
-                    if trans.get("iso_3166_1") == "CN":
-                        if trans["data"].get("name"):
-                            return trans["data"].get("name")
-                        else:
-                            return None
-            if res.status == 404:
-                raise FailRequest("TMDBID或者季数 不存在")
-            else:
-                raise FailRequest("获取季标题失败")
+    async def season_title(self, series_id, season_number):
+        """
+        获取季的中文标题（优先 CN，回退到 SG）
+
+        Args:
+            series_id: 剧集的 TMDB ID
+            season_number: 季号
+
+        Returns:
+            str | None: 返回中文标题，如果没有则返回 None
+        """
+        respond = await self._fetch_season_translations(series_id, season_number)
+
+        cn_title = None
+        sg_title = None
+
+        for trans in respond.get("translations", []):
+            iso = trans.get("iso_3166_1")
+            name = trans.get("data", {}).get("name")
+
+            if iso == "CN" and name:
+                cn_title = name
+            elif iso == "SG" and name:
+                sg_title = name
+
+        # 优先返回 CN，没有则返回 SG
+        return cn_title if cn_title else sg_title
 
     async def movie_title(self, tmdbid):
-        """获取电影的中文标题"""
-        path = f"https://api.themoviedb.org/3/movie/{tmdbid}/translations?api_key={TMDB_API}"
-        proxy = PROXY if ISPROXY else None
-        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
-            if res.status == 200:
-                respond = await res.json()
-                for trans in respond.get("translations", []):
-                    if trans.get("iso_3166_1") == "CN":
-                        if trans["data"].get("title"):
-                            return trans["data"].get("title")
-                        else:
-                            return None
-                return None
-            elif res.status == 404:
-                raise FailRequest("电影TMDBID不存在")
-            else:
-                raise FailRequest("获取电影中文标题失败")
+        """
+        获取电影的中文标题（不含日文）
+
+        优先级顺序：
+        1. CN alternative_titles
+        2. CN translations
+        3. SG alternative_titles
+        4. SG translations
+
+        Args:
+            tmdbid: 电影的 TMDB ID
+
+        Returns:
+            str | None: 返回不含日文的中文标题，如果没有则返回 None
+        """
+        # 获取两个数据源
+        alt_data = None
+        trans_data = None
+
+        try:
+            alt_data = await self._fetch_movie_alternative_titles(tmdbid)
+        except Exception:
+            pass
+
+        try:
+            trans_data = await self._fetch_movie_translations(tmdbid)
+        except Exception:
+            pass
+
+        # 优先级 1: CN alternative_titles
+        if alt_data:
+            for alt in alt_data.get("titles", []):
+                if alt.get("iso_3166_1") == "CN":
+                    title = alt.get("title")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 优先级 2: CN translations
+        if trans_data:
+            for trans in trans_data.get("translations", []):
+                if trans.get("iso_3166_1") == "CN":
+                    title = trans.get("data", {}).get("title")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 优先级 3: SG alternative_titles
+        if alt_data:
+            for alt in alt_data.get("titles", []):
+                if alt.get("iso_3166_1") == "SG":
+                    title = alt.get("title")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 优先级 4: SG translations
+        if trans_data:
+            for trans in trans_data.get("translations", []):
+                if trans.get("iso_3166_1") == "SG":
+                    title = trans.get("data", {}).get("title")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 都没找到，返回 None
+        return None
 
     async def show_title(self, tmdbid):
-        """获取剧集的中文标题"""
-        path = f"https://api.themoviedb.org/3/tv/{tmdbid}/translations?api_key={TMDB_API}"
-        proxy = PROXY if ISPROXY else None
-        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
-            if res.status == 200:
-                respond = await res.json()
-                for trans in respond.get("translations", []):
-                    if trans.get("iso_3166_1") == "CN":
-                        if trans["data"].get("name"):
-                            return trans["data"].get("name")
-                        else:
-                            return None
-                return None
-            elif res.status == 404:
-                raise FailRequest("剧集TMDBID不存在")
-            else:
-                raise FailRequest("获取剧集中文标题失败")
+        """
+        获取剧集的中文标题（不含日文）
+
+        优先级顺序：
+        1. CN alternative_titles
+        2. CN translations
+        3. SG alternative_titles
+        4. SG translations
+
+        Args:
+            tmdbid: 剧集的 TMDB ID
+
+        Returns:
+            str | None: 返回不含日文的中文标题，如果没有则返回 None
+        """
+        # 获取两个数据源
+        alt_data = None
+        trans_data = None
+
+        try:
+            alt_data = await self._fetch_tv_alternative_titles(tmdbid)
+        except Exception:
+            pass
+
+        try:
+            trans_data = await self._fetch_tv_translations(tmdbid)
+        except Exception:
+            pass
+
+        # 优先级 1: CN alternative_titles
+        if alt_data:
+            for alt in alt_data.get("results", []):
+                if alt.get("iso_3166_1") == "CN":
+                    title = alt.get("title")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 优先级 2: CN translations
+        if trans_data:
+            for trans in trans_data.get("translations", []):
+                if trans.get("iso_3166_1") == "CN":
+                    title = trans.get("data", {}).get("name")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 优先级 3: SG alternative_titles
+        if alt_data:
+            for alt in alt_data.get("results", []):
+                if alt.get("iso_3166_1") == "SG":
+                    title = alt.get("title")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 优先级 4: SG translations
+        if trans_data:
+            for trans in trans_data.get("translations", []):
+                if trans.get("iso_3166_1") == "SG":
+                    title = trans.get("data", {}).get("name")
+                    if title and self.has_chinese_no_japanese(title):
+                        return title
+
+        # 都没找到，返回 None
+        return None
 
     async def get_role_from_id(self,type,tmdbid):
         """
@@ -362,3 +497,119 @@ class Util():
         """清空演员数据缓存，释放内存"""
         cls._role_cache.clear()
         cls._pending_requests.clear()
+
+    async def _fetch_movie_translations(self, tmdbid):
+        """
+        获取电影的翻译数据
+
+        Args:
+            tmdbid: 电影的 TMDB ID
+
+        Returns:
+            dict: TMDB API 返回的原始 JSON 数据
+
+        Raises:
+            FailRequest: API 请求失败时抛出
+        """
+        path = f"https://api.themoviedb.org/3/movie/{tmdbid}/translations?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
+            if res.status == 200:
+                return await res.json()
+            elif res.status == 404:
+                raise FailRequest("电影TMDBID不存在")
+            else:
+                raise FailRequest("获取电影翻译数据失败")
+
+    async def _fetch_tv_translations(self, tmdbid):
+        """
+        获取剧集的翻译数据
+
+        Args:
+            tmdbid: 剧集的 TMDB ID
+
+        Returns:
+            dict: TMDB API 返回的原始 JSON 数据
+
+        Raises:
+            FailRequest: API 请求失败时抛出
+        """
+        path = f"https://api.themoviedb.org/3/tv/{tmdbid}/translations?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
+            if res.status == 200:
+                return await res.json()
+            elif res.status == 404:
+                raise FailRequest("剧集TMDBID不存在")
+            else:
+                raise FailRequest("获取剧集翻译数据失败")
+
+    async def _fetch_season_translations(self, series_id, season_number):
+        """
+        获取季的翻译数据
+
+        Args:
+            series_id: 剧集的 TMDB ID
+            season_number: 季号
+
+        Returns:
+            dict: TMDB API 返回的原始 JSON 数据
+
+        Raises:
+            FailRequest: API 请求失败时抛出
+        """
+        path = f"https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}/translations?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
+            if res.status == 200:
+                return await res.json()
+            elif res.status == 404:
+                raise FailRequest("TMDBID或季数不存在")
+            else:
+                raise FailRequest("获取季翻译数据失败")
+
+    async def _fetch_movie_alternative_titles(self, tmdbid):
+        """
+        获取电影的别名
+
+        Args:
+            tmdbid: 电影的 TMDB ID
+
+        Returns:
+            dict: TMDB API 返回的原始 JSON 数据
+
+        Raises:
+            FailRequest: API 请求失败时抛出
+        """
+        path = f"https://api.themoviedb.org/3/movie/{tmdbid}/alternative_titles?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
+            if res.status == 200:
+                return await res.json()
+            elif res.status == 404:
+                raise FailRequest("电影TMDBID不存在")
+            else:
+                raise FailRequest("获取电影别名失败")
+
+    async def _fetch_tv_alternative_titles(self, series_id):
+        """
+        获取剧集的别名数据
+
+        Args:
+            series_id: 剧集的 TMDB ID
+
+        Returns:
+            dict: TMDB API 返回的原始 JSON 数据
+
+        Raises:
+            FailRequest: API 请求失败时抛出
+        """
+        path = f"https://api.themoviedb.org/3/tv/{series_id}/alternative_titles?api_key={TMDB_API}"
+        proxy = PROXY if ISPROXY else None
+        async with self._server.tmdb_session.get(path, proxy=proxy) as res:
+            if res.status == 200:
+                return await res.json()
+            elif res.status == 404:
+                raise FailRequest("剧集TMDBID不存在")
+            else:
+                raise FailRequest("获取剧集别名失败")

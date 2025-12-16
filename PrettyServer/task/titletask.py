@@ -38,6 +38,12 @@ class TitleTask(TT):
                 if not media.tmdbid:
                     log.warning(f"{self.server.type.capitalize()}: {media.Name} 没有tmdbid，无法搜索剧集标题，跳过")
                     return
+
+                # 检查当前标题是否已经是不含日文的中文标题
+                if media.has_chinese_no_japanese(media.Name):
+                    log.info(f'{self.server.type.capitalize()}: {media.Name} 已经是不含日文的中文标题，跳过')
+                    return
+
                 title = await media.show_title(media.tmdbid)
                 if title:
                     if media.Name == title:
@@ -59,6 +65,12 @@ class TitleTask(TT):
                 if not media.tmdbid:
                     log.warning(f"{self.server.type.capitalize()}: {media.Name} 没有tmdbid，无法搜索电影标题，跳过")
                     return
+
+                # 检查当前标题是否已经是不含日文的中文标题
+                if media.has_chinese_no_japanese(media.Name):
+                    log.info(f'{self.server.type.capitalize()}: {media.Name} 已经是不含日文的中文标题，跳过')
+                    return
+
                 title = await media.movie_title(media.tmdbid)
                 if title:
                     if media.Name == title:
