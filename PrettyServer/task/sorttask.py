@@ -52,6 +52,9 @@ class SortTask(ST):
                 #在标题搜索的最后加入整个name的拼音
                 if len(split_title) != 1:
                     final += ","+"".join(split_title)
+                #添加tmdbid
+                if media.tmdbid != None:
+                    final += ","+"tmdbid="+media.tmdbid+","+media.tmdbid
                 if isinstance(self.server,Embyserver):
                     if media.SortName != (titlevalue[0] if titlevalue[0].isdigit() else titlevalue) or \
                     media.OriginalTitle != final:

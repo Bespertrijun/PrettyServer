@@ -17,6 +17,7 @@ greenlet==3.0.1
 h11==0.16.0
 idna==3.4
 itsdangerous==2.2.0
+jieba==0.42.1
 loguru==0.7.0
 lz4==4.3.3
 multidict==6.0.4

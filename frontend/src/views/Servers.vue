@@ -886,7 +886,10 @@ const saveConfig = async (row: ServerInfo) => {
       row.config = JSON.parse(JSON.stringify(formData))
 
       // 重新克隆到编辑表单，确保数据一致
-      editFormData.value[formData.name] = JSON.parse(JSON.stringify(formData))
+      // 但要删除密码字段，防止重复加密
+      const clonedFormData = JSON.parse(JSON.stringify(formData))
+      delete clonedFormData.password
+      editFormData.value[formData.name] = clonedFormData
 
       // 如果服务器名称改变了，需要删除旧的 editFormData
       if (row.name !== formData.name) {

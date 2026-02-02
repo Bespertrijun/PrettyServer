@@ -6,6 +6,8 @@ from aiohttp import ClientSession,ClientTimeout
 from util.exception import FailRequest
 from conf.conf import TMDB_API,PROXY,ISPROXY
 import asyncio
+import jieba
+from pypinyin import pinyin, Style
 
 _timeout = ClientTimeout(
     connect=3,          # 3秒内必须建立起连接
@@ -106,7 +108,7 @@ class Util():
             if '\u4e00' <= ch <= '\u9fff':
                 chs += ch
             elif ch.isalnum():
-                chs += ch    
+                chs += ch
             elif ch == '-':
                 pass
             else:
@@ -116,6 +118,74 @@ class Util():
             for ch in chs_list:
                 chs+= '-' + ch
         return chs
+
+    def build_search_term(self, title: str) -> str:
+        """
+        构建增强的搜索索引（参考 MeiliSearch 设计）
+
+        生成多种搜索词元，支持：
+        1. 中文原文（流浪地球）
+        2. 中文分词（流浪, 地球）
+        3. 完整简拼（lldq）
+        4. 分词全拼（liulang, diqiu）
+        5. 分词简拼（ll, dq）
+
+        Args:
+            title: 中文标题
+
+        Returns:
+            逗号分隔的搜索索引字符串
+
+        示例:
+            输入: "流浪地球"
+            输出: "流浪地球,流浪,地球,liulangdiqiu,lldq,liulang,diqiu,ll,dq"
+        """
+        if not title:
+            return ""
+
+        # 提取中文字符
+        chinese_chars = ''.join([ch for ch in title if '\u4e00' <= ch <= '\u9fff'])
+        if not chinese_chars:
+            return title
+
+        search_tokens = set()
+
+        # 1. 添加原始中文
+        search_tokens.add(chinese_chars)
+
+        # 2. 完整标题的拼音（全拼和简拼）
+        full_pinyin_list = pinyin(chinese_chars, style=Style.NORMAL, heteronym=False)
+        full_pinyin = ''.join([p[0] for p in full_pinyin_list])  # 完整全拼
+        full_abbr = ''.join([p[0][0] for p in full_pinyin_list])  # 完整简拼
+
+        search_tokens.add(full_pinyin)
+        search_tokens.add(full_abbr)
+
+        # 3. 使用 jieba 分词
+        words = list(jieba.cut(chinese_chars))
+
+        # 过滤单字和非中文词
+        meaningful_words = [
+            w for w in words
+            if len(w) > 1 and any('\u4e00' <= ch <= '\u9fff' for ch in w)
+        ]
+
+        # 4. 添加中文分词
+        for word in meaningful_words:
+            search_tokens.add(word)
+
+        # 5. 为每个分词生成拼音（全拼和简拼）
+        for word in meaningful_words:
+            word_pinyin_list = pinyin(word, style=Style.NORMAL, heteronym=False)
+            word_pinyin = ''.join([p[0] for p in word_pinyin_list])  # 分词全拼
+            word_abbr = ''.join([p[0][0] for p in word_pinyin_list])  # 分词简拼
+
+            search_tokens.add(word_pinyin)
+            if len(word_abbr) > 1:  # 避免单字母简拼（噪音太多）
+                search_tokens.add(word_abbr)
+
+        # 将所有词元用逗号连接
+        return ','.join(sorted(search_tokens, key=lambda x: (len(x), x)))
 
     def covertType(self,type):
         if type.lower() == 'movies':
